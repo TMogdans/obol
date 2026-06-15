@@ -70,17 +70,25 @@ const sqlFileLoader = (directory: string): Loader<FileSystem | Path> =>
       if (rawId === undefined || name === undefined) continue;
 
       const filePath = path.join(directory, entry);
-      const load = Effect.flatMap(
-        fs.readFileString(filePath).pipe(
-          Effect.mapError(
-            (error) =>
-              new MigrationError({
-                reason: "failed",
-                message: error.message,
-              }),
-          ),
+
+      // A `ResolvedMigration`'s third element is a `load` Effect that must
+      // *resolve to* the migration Effect — the Migrator engine runs `load`,
+      // then runs the Effect it yields (mirroring how the built-in glob loaders
+      // resolve an ESM module to its default-exported Effect). So `load` reads
+      // the file and SUCCEEDS WITH the SQL-executing Effect; it must not run the
+      // SQL itself (doing so resolves to result rows, and the engine then fails
+      // with "Default export not found").
+      const load = fs.readFileString(filePath).pipe(
+        Effect.mapError(
+          (error) =>
+            new MigrationError({
+              reason: "failed",
+              message: error.message,
+            }),
         ),
-        (contents) => Effect.flatMap(SqlClient, (sql) => sql.unsafe(contents)),
+        Effect.map((contents) =>
+          Effect.flatMap(SqlClient, (sql) => sql.unsafe(contents)),
+        ),
       );
 
       migrations.push([Number(rawId), name, load]);

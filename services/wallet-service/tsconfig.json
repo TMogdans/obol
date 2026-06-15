@@ -1,7 +1,11 @@
 {
   // Package "solution" config. It owns no files itself; it only wires
-  // together the build/emit project (src). A typecheck-only `tsconfig.test.json`
-  // will be added alongside this in Task 4 when the first tests land.
+  // together the build/emit project (src) and the typecheck-only test project
+  // (test). `tsc -b` walks both references, so the typecheck gate covers the
+  // test files as well as the sources.
   "files": [],
-  "references": [{ "path": "./tsconfig.src.json" }]
+  "references": [
+    { "path": "./tsconfig.src.json" },
+    { "path": "./tsconfig.test.json" }
+  ]
 }

@@ -3,5 +3,11 @@ packages:
   - "packages/*"
 allowBuilds:
   '@biomejs/biome': true
+  # testcontainers transitive native deps — not needed for the Postgres module
+  # (ssh2 falls back to its pure-JS path), so skip their build scripts.
+  '@parcel/watcher': false
+  cpu-features: false
   esbuild: true
   msgpackr-extract: false
+  protobufjs: false
+  ssh2: false
