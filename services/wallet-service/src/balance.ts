@@ -58,6 +58,13 @@ const toBalanceEntry = (row: AmountRow): BalanceEntry => ({
  * to return the account's current balance. An account with no entries naturally
  * projects to `0`.
  *
+ * `accountExists` answers the orthogonal question "is there an `account` row
+ * with this id?" via a cheap `SELECT 1`. This is what lets a caller (e.g. the
+ * HTTP handler) distinguish an existing account whose balance is `0` from an
+ * account that does not exist at all — `balanceFor` returns `0` for both, so
+ * the existence check is the only thing that separates a `200`-with-`0` from a
+ * `404`.
+ *
  * Requires a `SqlClient` in context (provided by `DbLive`). Failures surface as
  * `SqlError`.
  */
@@ -77,6 +84,13 @@ export class BalanceRepo extends Effect.Service<BalanceRepo>()("BalanceRepo", {
     const balanceFor = (accountId: string): Effect.Effect<number, SqlError> =>
       entriesFor(accountId).pipe(Effect.map(projectBalance));
 
-    return { entriesFor, balanceFor } as const;
+    const accountExists = (
+      accountId: string,
+    ): Effect.Effect<boolean, SqlError> =>
+      sql<{ readonly one: number }>`
+        SELECT 1 AS one FROM account WHERE id = ${accountId} LIMIT 1
+      `.pipe(Effect.map((rows) => rows.length > 0));
+
+    return { entriesFor, balanceFor, accountExists } as const;
   }),
 }) {}
