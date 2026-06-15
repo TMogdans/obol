@@ -1,9 +1,20 @@
 {
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src",
-    "composite": true
-  },
-  "include": ["src"]
+  // Package "solution" config. It owns no files itself; it only wires
+  // together the build/emit project (src) and the typecheck-only project
+  // (test) so that `tsc -b` walks into BOTH.
+  //
+  // Pattern for future packages/services — copy these three files:
+  //   - tsconfig.src.json   build/emit -> dist/  (this is what other
+  //                         packages reference for their dependencies)
+  //   - tsconfig.test.json  typechecks test/ only; emits throwaway type
+  //                         artifacts to dist-test/ (gitignored) so tests
+  //                         are checked but never leak into the published
+  //                         dist/ surface. References src so tests resolve
+  //                         the package's own source.
+  //   - tsconfig.json       this solution file: { files:[], references:[...] }
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.src.json" },
+    { "path": "./tsconfig.test.json" }
+  ]
 }
