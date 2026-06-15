@@ -1,0 +1,18 @@
+{
+  "name": "obol",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "typecheck": "tsc -b",
+    "lint": "biome check .",
+    "test": "vitest run",
+    "knip": "knip"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0",
+    "@biomejs/biome": "^1.9.0",
+    "knip": "^5.40.0"
+  }
+}
