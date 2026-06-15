@@ -2,11 +2,12 @@
   "name": "obol",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@11.6.0",
   "engines": { "node": ">=22" },
   "scripts": {
     "typecheck": "tsc -b",
     "lint": "biome check .",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "knip": "knip"
   },
   "devDependencies": {
