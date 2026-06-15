@@ -1,4 +1,7 @@
 {
   "include": [],
-  "references": [{ "path": "packages/contracts" }]
+  "references": [
+    { "path": "packages/contracts" },
+    { "path": "services/wallet-service" }
+  ]
 }

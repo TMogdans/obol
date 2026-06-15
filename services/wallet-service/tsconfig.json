@@ -1,0 +1,7 @@
+{
+  // Package "solution" config. It owns no files itself; it only wires
+  // together the build/emit project (src). A typecheck-only `tsconfig.test.json`
+  // will be added alongside this in Task 4 when the first tests land.
+  "files": [],
+  "references": [{ "path": "./tsconfig.src.json" }]
+}
