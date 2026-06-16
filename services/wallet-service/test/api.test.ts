@@ -8,7 +8,6 @@ import {
 } from "@testcontainers/postgresql";
 import { Effect, Layer, type Scope } from "effect";
 import { expect } from "vitest";
-import { BalanceRepo } from "../src/balance.js";
 import { DbLive, MigratorLive } from "../src/db.js";
 import { WalletApiLive } from "../src/main.js";
 
