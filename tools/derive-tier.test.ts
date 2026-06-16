@@ -51,6 +51,14 @@ it("a packages path that is not contracts is T1", () => {
   expect(deriveTier(["packages/other/src/util.ts"])).toBe("T1");
 });
 
+it("editing the tier rules themselves forces T3 (the cage protects its own rules)", () => {
+  // Changing the file that DEFINES risk derivation must be highest-scrutiny —
+  // otherwise an agent could self-downgrade the rules one level up from the
+  // tier itself (framework §9: the tier assignment belongs to the protected set).
+  expect(deriveTier(["tools/tier-map.json"])).toBe("T3");
+  expect(deriveTier(["tools/derive-tier.ts"])).toBe("T3");
+});
+
 it("the highest tier across many paths wins regardless of order", () => {
   expect(
     deriveTier([

@@ -1,5 +1,10 @@
 {
-  "T3": ["services/*/migrations/**", "**/auth/**", "packages/contracts/**"],
+  "T3": [
+    "services/*/migrations/**",
+    "**/auth/**",
+    "packages/contracts/**",
+    "tools/**"
+  ],
   "T2": ["services/**"],
   "T1": ["**"]
 }
