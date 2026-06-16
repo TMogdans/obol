@@ -1,0 +1,10 @@
+{
+  // Package "solution" config — mirrors wallet-service. It owns no files
+  // itself; it only wires together the build/emit project (src) and the
+  // typecheck-only test project (test). `tsc -b` walks both references.
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.src.json" },
+    { "path": "./tsconfig.test.json" }
+  ]
+}

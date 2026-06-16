@@ -1,0 +1,20 @@
+{
+  "name": "@obol/statement-service",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@effect/platform": "^0.96.1",
+    "effect": "^3"
+  },
+  "devDependencies": {
+    "@effect/platform-node": "^0.107.0",
+    "@effect/vitest": "^0.18.1",
+    "vitest": "^2.1.0"
+  }
+}
