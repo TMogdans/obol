@@ -1,0 +1,27 @@
+# Squawk — Postgres migration lint gate (Säule 2).
+#
+# Run: `pnpm run migrations` (== squawk --config .squawk.toml services/*/migrations/*.sql)
+#
+# pg_version pins the rule set to the Postgres major we target so that
+# version-gated lints behave deterministically in CI.
+pg_version = "16.0"
+
+# Baseline exclusions — each is a documented, deliberate decision, NOT a blanket
+# mute. They apply to the bootstrap migration (0001_init.sql), which creates the
+# schema on an empty database. The excluded rules guard against locking a LIVE,
+# populated table; on first-ever creation there is no data and no concurrent
+# traffic, so they are inapplicable here. Any FUTURE migration that alters a
+# populated table is still fully linted by every other rule.
+excluded_rules = [
+  # CREATE INDEX (non-concurrent) blocks writes only on a table that already
+  # holds rows. The index here is created together with its brand-new, empty
+  # table, so there is nothing to block.
+  "require-concurrent-index-creation",
+  # statement_timeout protects against a slow statement holding locks on a busy
+  # table. The bootstrap runs once, transactionally, against an empty database.
+  "require-timeout-settings",
+  # IF NOT EXISTS / rerun-robustness: the migrator (Task 3) runs each migration
+  # exactly once inside a transaction and records it; partial-failure reruns are
+  # handled by the transactional migrator, not by IF NOT EXISTS guards.
+  "prefer-robust-stmts",
+]

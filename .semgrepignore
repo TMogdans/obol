@@ -1,8 +1,6 @@
 node_modules/
 dist/
 dist-test/
-*.tsbuildinfo
-.env
 coverage/
 reports/
-.stryker-tmp/
+*.tsbuildinfo

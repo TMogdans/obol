@@ -1,0 +1,40 @@
+# CODEOWNERS — the protected set (Säule 2).
+#
+# These paths define HOW the repository is verified: the CI gates, the gate
+# configs, the constitution, and CODEOWNERS itself. Requiring the repo owner's
+# review on any change to them is what makes "weakening a gate needs separate,
+# human approval" real — an agent (or anyone) cannot silently lower a threshold,
+# disable a check, or rewrite the rules without @tmogdans signing off.
+#
+# Pair this file with a branch-protection rule that enables
+# "Require review from Code Owners" (configured in Task 11).
+
+# Specification & constitution (the rules the gates enforce)
+/.specify/                  @tmogdans
+
+# CI definition (the gates themselves)
+/.github/                   @tmogdans
+/.github/workflows/         @tmogdans
+
+# CODEOWNERS — guard the guard
+/.github/CODEOWNERS         @tmogdans
+
+# Gate configurations — changing any of these changes the verification
+/stryker.config.json        @tmogdans
+/vitest.mutation.config.ts  @tmogdans
+/vitest.config.ts           @tmogdans
+/.dependency-cruiser.cjs    @tmogdans
+/.squawk.toml               @tmogdans
+/knip.json                  @tmogdans
+/.semgrepignore             @tmogdans
+/tools/                     @tmogdans
+
+# Build/type config that the gates depend on
+/biome.json                 @tmogdans
+/tsconfig.base.json         @tmogdans
+/tsconfig.json              @tmogdans
+
+# Root manifest (gate scripts + pinned tool versions)
+/package.json               @tmogdans
+/pnpm-lock.yaml             @tmogdans
+/pnpm-workspace.yaml        @tmogdans

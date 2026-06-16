@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "_comment": "Mutation testing gate (Säule 2, the assert(true)-killer). Scope: the PURE balance projection only — see vitest.mutation.config.ts for why DB/HTTP/integration files are excluded. The fast-check property test from Task 8 is what kills the arithmetic mutants. 'break' is set just below the achieved baseline so it acts as a ratchet.",
+  "packageManager": "pnpm",
+  "testRunner": "vitest",
+  "plugins": ["@stryker-mutator/vitest-runner"],
+  "vitest": {
+    "configFile": "vitest.mutation.config.ts"
+  },
+  "mutate": ["services/wallet-service/src/balance.ts:27-28"],
+  "ignorePatterns": ["dist", "dist-test", "coverage"],
+  "reporters": ["html", "clear-text", "progress"],
+  "coverageAnalysis": "perTest",
+  "_thresholds_comment": "Achieved baseline on projectBalance is 100% (3/3 mutants killed by the fast-check property test). break=100 makes this a strict ratchet: any surviving mutant fails CI.",
+  "thresholds": {
+    "high": 100,
+    "low": 90,
+    "break": 100
+  }
+}

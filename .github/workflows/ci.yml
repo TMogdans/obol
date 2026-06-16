@@ -1,0 +1,140 @@
+name: CI
+
+# The incorruptible gate suite (Säule 2). Every job below is intended to be a
+# REQUIRED status check via branch protection (configured in Task 11). The set
+# of jobs and their configs are owned by @tmogdans via CODEOWNERS, so the gates
+# cannot be weakened without separate human approval.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  typecheck:
+    name: typecheck (tsc -b)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable Corepack
+        run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run typecheck
+
+  lint:
+    name: lint (biome)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable Corepack
+        run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run lint
+
+  knip:
+    name: knip (dead code / unused deps)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable Corepack
+        run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run knip
+
+  test:
+    name: test + coverage (vitest, Testcontainers)
+    runs-on: ubuntu-latest
+    # ubuntu-latest runners ship Docker, which Testcontainers needs for the
+    # Postgres integration + migration tests.
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable Corepack
+        run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Builds the composite project so vitest can resolve workspace deps, then
+      # runs the suite with coverage thresholds enforced (see vitest.config.ts).
+      - run: pnpm run typecheck
+      - run: pnpm run test
+
+  mutation:
+    name: mutation (stryker, balance projection)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable Corepack
+        run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run mutation
+
+  arch:
+    name: arch (dependency-cruiser)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable Corepack
+        run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run arch
+
+  escape-hatches:
+    name: escape-hatches (semgrep)
+    runs-on: ubuntu-latest
+    # semgrep is a Python tool; the official container ships it preinstalled.
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v4
+      # --error makes any finding fail the job. The project .semgrepignore keeps
+      # test files in scope (semgrep's default ignore would skip *.test.ts).
+      - name: Run escape-hatch guard
+        run: semgrep --config tools/semgrep-escape-hatches.yml --error services packages
+
+  migrations:
+    name: migrations (squawk)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable Corepack
+        run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run migrations

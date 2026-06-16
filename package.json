@@ -3,17 +3,27 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.6.0",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "typecheck": "tsc -b",
     "lint": "biome check .",
-    "test": "vitest run --passWithNoTests",
-    "knip": "knip"
+    "test": "vitest run --passWithNoTests --coverage",
+    "knip": "knip",
+    "mutation": "stryker run",
+    "arch": "depcruise services packages --config .dependency-cruiser.cjs",
+    "migrations": "squawk --config .squawk.toml services/*/migrations/*.sql"
   },
   "devDependencies": {
-    "typescript": "^5.7.0",
-    "vitest": "^2.1.0",
     "@biomejs/biome": "^1.9.0",
-    "knip": "^5.40.0"
+    "@stryker-mutator/core": "8.7.1",
+    "@stryker-mutator/vitest-runner": "8.7.1",
+    "@vitest/coverage-v8": "2.1.9",
+    "dependency-cruiser": "17.4.3",
+    "knip": "^5.40.0",
+    "squawk-cli": "2.58.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
   }
 }

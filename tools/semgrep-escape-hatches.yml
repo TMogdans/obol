@@ -1,0 +1,58 @@
+# Escape-hatch guard — "Wächter der Wächter" (Säule 2).
+#
+# These rules ERROR on the common ways an agent (or human) silently defeats the
+# verification gates: skipping/focusing tests, disarming the typechecker, or
+# bypassing hooks. They are themselves a gate (run in CI as `escape-hatches`)
+# and the files that define the gates are protected via CODEOWNERS.
+#
+# Run locally: semgrep --config tools/semgrep-escape-hatches.yml --error .
+rules:
+  - id: no-test-skip
+    languages: [typescript]
+    severity: ERROR
+    message: "Test-Skip/only ist eine Fluchttür (Säule 2). Entferne .skip/.only oder fixe den Test."
+    pattern-either:
+      - pattern: it.skip(...)
+      - pattern: it.only(...)
+      - pattern: test.skip(...)
+      - pattern: test.only(...)
+      - pattern: describe.skip(...)
+      - pattern: describe.only(...)
+      - pattern: it.todo(...)
+      - pattern: xit(...)
+      - pattern: xdescribe(...)
+
+  - id: no-ts-expect-error
+    languages: [typescript]
+    severity: ERROR
+    message: "@ts-expect-error/@ts-ignore entwaffnet den Typechecker (Säule 2)."
+    paths:
+      exclude:
+        - "/tools/semgrep-escape-hatches.yml"
+    pattern-regex: "@ts-(expect-error|ignore)"
+
+  - id: no-eslint-biome-disable
+    languages: [typescript]
+    severity: ERROR
+    message: "Linter-Disable-Kommentare umgehen das Lint-Gate (Säule 2)."
+    paths:
+      exclude:
+        - "/tools/semgrep-escape-hatches.yml"
+    pattern-regex: "(eslint-disable|biome-ignore)"
+
+  - id: no-git-no-verify
+    languages: [generic]
+    severity: ERROR
+    message: "--no-verify umgeht Git-Hooks und damit die lokalen Gates (Säule 2)."
+    paths:
+      include:
+        - "*.sh"
+        - "*.yml"
+        - "*.yaml"
+        - "*.json"
+        - "*.cjs"
+        - "*.js"
+        - "*.ts"
+      exclude:
+        - "/tools/semgrep-escape-hatches.yml"
+    pattern-regex: "--no-verify"
