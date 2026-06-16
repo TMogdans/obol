@@ -1,0 +1,5 @@
+{
+  "T3": ["services/*/migrations/**", "**/auth/**", "packages/contracts/**"],
+  "T2": ["services/**"],
+  "T1": ["**"]
+}

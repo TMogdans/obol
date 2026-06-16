@@ -138,3 +138,58 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run migrations
+
+  tier:
+    name: tier (deterministic risk-tier derivation)
+    runs-on: ubuntu-latest
+    # Derives the change's risk tier from the touched paths only — never from a
+    # self-declaration (framework §9). Touching migrations / auth / contracts
+    # forces T3; the highest matching tier always wins. The rule set lives in
+    # tools/tier-map.json (protected via CODEOWNERS), the logic in
+    # tools/derive-tier.ts. This job only COMPUTES and surfaces the tier.
+    #
+    # T3 -> human-gate: enforcing that a T3 change requires a CODEOWNER review
+    # is a branch-protection concern (Task 11), not this job. Once branch
+    # protection is in place, a required reviewer / "Require review from Code
+    # Owners" rule on the protected paths is what turns this computed tier into
+    # an actual gate. This job makes the tier visible (and could be extended to
+    # fail when a T3 PR lacks the required approval).
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Need the base branch history to diff against.
+          fetch-depth: 0
+      - name: Enable Corepack
+        run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Compute changed files vs base
+        id: changes
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="origin/${{ github.base_ref }}"
+          else
+            BASE="${{ github.event.before }}"
+          fi
+          git fetch origin "${{ github.base_ref || github.ref_name }}" --depth=50 || true
+          CHANGED=$(git diff --name-only "$BASE"...HEAD || git diff --name-only HEAD~1...HEAD || true)
+          echo "Changed files:"
+          echo "$CHANGED"
+          {
+            echo 'files<<EOF'
+            echo "$CHANGED"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+      - name: Derive risk tier
+        id: tier
+        run: |
+          TIER=$(printf '%s\n' "${{ steps.changes.outputs.files }}" | pnpm run --silent tier)
+          echo "Derived risk tier: $TIER"
+          echo "tier=$TIER" >> "$GITHUB_OUTPUT"
+          echo "### Risk tier: \`$TIER\`" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$TIER" = "T3" ]; then
+            echo "T3 change (migrations / auth / contracts). A CODEOWNER review is required — enforced by branch protection (Task 11)." >> "$GITHUB_STEP_SUMMARY"
+          fi

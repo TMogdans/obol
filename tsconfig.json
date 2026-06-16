@@ -3,6 +3,7 @@
   "references": [
     { "path": "packages/contracts" },
     { "path": "services/wallet-service" },
-    { "path": "services/statement-service" }
+    { "path": "services/statement-service" },
+    { "path": "tools" }
   ]
 }

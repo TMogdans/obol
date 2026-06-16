@@ -1,0 +1,11 @@
+{
+  // Solution config for the (non-package) tools/ area. tools/ is not a pnpm
+  // workspace, but the typecheck gate must still cover BOTH its source and its
+  // tests. Mirrors the per-package src/test split used elsewhere so that
+  // `tsc -b` (via the root reference) walks into both projects.
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.src.json" },
+    { "path": "./tsconfig.test.json" }
+  ]
+}

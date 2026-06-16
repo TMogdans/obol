@@ -1,0 +1,10 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "dist-test",
+    "rootDir": "."
+  },
+  "include": ["derive-tier.test.ts"],
+  "references": [{ "path": "./tsconfig.src.json" }]
+}

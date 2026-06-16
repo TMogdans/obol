@@ -13,6 +13,10 @@
     "packages/contracts": {
       "entry": ["src/index.ts", "test/**/*.test.ts"],
       "project": ["src/**/*.ts"]
+    },
+    "tools": {
+      "entry": ["derive-tier-cli.ts", "derive-tier.test.ts"],
+      "project": ["*.ts"]
     }
   }
 }

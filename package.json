@@ -13,16 +13,21 @@
     "knip": "knip",
     "mutation": "stryker run",
     "arch": "depcruise services packages --config .dependency-cruiser.cjs",
-    "migrations": "squawk --config .squawk.toml services/*/migrations/*.sql"
+    "migrations": "squawk --config .squawk.toml services/*/migrations/*.sql",
+    "tier": "tsx tools/derive-tier-cli.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.0",
+    "@effect/vitest": "^0.18.0",
+    "@types/node": "^22",
     "@stryker-mutator/core": "8.7.1",
     "@stryker-mutator/vitest-runner": "8.7.1",
     "@vitest/coverage-v8": "2.1.9",
     "dependency-cruiser": "17.4.3",
+    "effect": "^3",
     "knip": "^5.40.0",
     "squawk-cli": "2.58.0",
+    "tsx": "^4.19.0",
     "typescript": "^5.7.0",
     "vitest": "^2.1.0"
   }
