@@ -12,7 +12,7 @@ import { Effect } from "effect";
  * at the SQL read boundary in the repo, so this pure function never sees a
  * bigint or a string.
  */
-export interface BalanceEntry {
+interface BalanceEntry {
   readonly amount: number;
 }
 

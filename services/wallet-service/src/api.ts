@@ -5,7 +5,7 @@ import { Schema } from "effect";
  * Success body for the balance query: the account's id echoed back plus its
  * current balance (the signed sum of its ledger entries).
  */
-export const Balance = Schema.Struct({
+const Balance = Schema.Struct({
   accountId: Schema.String,
   balance: Schema.Number,
 });
@@ -14,7 +14,7 @@ export const Balance = Schema.Struct({
  * Path parameters for `/accounts/:id/balance`. The `id` segment is decoded into
  * this struct and handed to the handler as `path.id`.
  */
-export const BalancePath = Schema.Struct({
+const BalancePath = Schema.Struct({
   id: Schema.String,
 });
 
@@ -35,7 +35,7 @@ export class AccountNotFound extends Schema.TaggedError<AccountNotFound>()(
  * Health/liveness response. A trivial `{ status: "ok" }` so a probe can assert
  * both the 200 and a stable body shape.
  */
-export const Health = Schema.Struct({
+const Health = Schema.Struct({
   status: Schema.Literal("ok"),
 });
 

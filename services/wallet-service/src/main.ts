@@ -10,6 +10,7 @@ import { WalletApi } from "./api.js";
 import { BalanceRepo } from "./balance.js";
 import { DbLive } from "./db.js";
 import { AccountsHandlersLive } from "./handlers.js";
+import { TelemetryLive } from "./telemetry.js";
 
 /**
  * The fully wired wallet HTTP application as a single `Layer`, minus the
@@ -53,6 +54,7 @@ export const launch = Effect.gen(function* () {
   yield* Layer.launch(
     WalletApiLive.pipe(
       Layer.provide(NodeHttpServer.layer(createServer, { port })),
+      Layer.provide(TelemetryLive),
     ),
   );
 });

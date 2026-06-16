@@ -3,12 +3,11 @@
   "ignore": ["vitest.mutation.config.ts"],
   "workspaces": {
     "services/wallet-service": {
-      "entry": ["src/server.ts", "src/index.ts", "test/**/*.test.ts"],
-      "project": ["src/**/*.ts"],
-      "ignoreDependencies": ["testcontainers", "@obol/contracts"]
+      "entry": ["src/server.ts", "test/**/*.test.ts"],
+      "project": ["src/**/*.ts"]
     },
     "services/statement-service": {
-      "entry": ["src/server.ts", "src/index.ts", "test/**/*.test.ts"],
+      "entry": ["src/server.ts", "test/**/*.test.ts"],
       "project": ["src/**/*.ts"]
     },
     "packages/contracts": {

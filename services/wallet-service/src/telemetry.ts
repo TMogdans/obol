@@ -28,7 +28,7 @@ import { Layer, Logger, Tracer } from "effect";
  * `Logger.json` REPLACES the default pretty logger rather than adding to it, so
  * provide it once at the composition root.
  */
-export const LoggerLive: Layer.Layer<never> = Logger.json;
+const LoggerLive: Layer.Layer<never> = Logger.json;
 
 /**
  * A no-op `Tracer` whose spans are inert: `span()` returns a `Tracer.Span` that
@@ -86,7 +86,7 @@ const noopTracer: Tracer.Tracer = Tracer.make({
  * Nothing else in the service changes — that is the value of treating
  * telemetry as a swappable layer rather than ambient global state.
  */
-export const TracingLive: Layer.Layer<never> = Layer.setTracer(noopTracer);
+const TracingLive: Layer.Layer<never> = Layer.setTracer(noopTracer);
 
 /**
  * The full telemetry stack: structured logs + the (stubbed) tracing layer,

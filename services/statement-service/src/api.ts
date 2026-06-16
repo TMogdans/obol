@@ -6,7 +6,7 @@ import { Schema } from "effect";
  * both the 200 and a stable body shape. Mirrors wallet-service's `Health` so
  * the two services expose a consistent liveness contract.
  */
-export const Health = Schema.Struct({
+const Health = Schema.Struct({
   status: Schema.Literal("ok"),
 });
 
