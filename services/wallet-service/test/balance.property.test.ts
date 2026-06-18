@@ -1,6 +1,6 @@
 import { expect, it } from "@effect/vitest";
 import * as fc from "fast-check";
-import { projectBalance } from "../src/balance.js";
+import { projectBalance } from "../src/balance.pure.js";
 
 /**
  * Bounded integer amount.

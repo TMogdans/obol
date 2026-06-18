@@ -1,5 +1,5 @@
 import { expect, it } from "@effect/vitest";
-import { projectBalance } from "../src/balance.js";
+import { projectBalance } from "../src/balance.pure.js";
 
 it("sums entries to a balance", () => {
   expect(

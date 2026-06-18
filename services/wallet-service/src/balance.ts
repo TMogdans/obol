@@ -1,31 +1,7 @@
 import { SqlClient } from "@effect/sql/SqlClient";
 import type { SqlError } from "@effect/sql/SqlError";
 import { Effect } from "effect";
-
-/**
- * A single ledger amount, the only field balance projection cares about.
- *
- * `amount` is a JS `number`. See the bigint boundary note on {@link BalanceRepo}:
- * the database column is `bigint`, but the projection deliberately works on
- * `number` because minor-unit credit amounts in this reference repo comfortably
- * fit inside `Number.MAX_SAFE_INTEGER`. The string→number coercion happens once,
- * at the SQL read boundary in the repo, so this pure function never sees a
- * bigint or a string.
- */
-interface BalanceEntry {
-  readonly amount: number;
-}
-
-/**
- * Pure balance projection: fold a list of ledger amounts into a single balance.
- *
- * Deliberately total and side-effect-free — an empty ledger projects to `0`,
- * and signed amounts (negative `spend`, positive `topup`) simply sum. This is
- * the heart of the credit ledger and is tested in isolation, no database
- * required.
- */
-export const projectBalance = (entries: ReadonlyArray<BalanceEntry>): number =>
-  entries.reduce((sum, entry) => sum + entry.amount, 0);
+import { type BalanceEntry, projectBalance } from "./balance.pure.js";
 
 /**
  * Shape of a `ledger_entry.amount` row as it comes back from the pg driver.
