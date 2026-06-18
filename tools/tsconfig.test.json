@@ -5,6 +5,6 @@
     "outDir": "dist-test",
     "rootDir": "."
   },
-  "include": ["derive-tier.test.ts"],
+  "include": ["derive-tier.test.ts", "trace-coverage.test.ts"],
   "references": [{ "path": "./tsconfig.src.json" }]
 }

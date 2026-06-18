@@ -58,7 +58,7 @@ interface BalanceBody {
 }
 
 it.effect(
-  "serves balance (200/0/404) and health over HTTP",
+  "[REQ-BAL-01][REQ-BAL-02][REQ-BAL-03] serves balance (200/0/404) and health over HTTP",
   () =>
     Effect.scoped(
       Effect.gen(function* () {

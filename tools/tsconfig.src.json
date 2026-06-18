@@ -6,5 +6,10 @@
     "rootDir": ".",
     "types": ["node"]
   },
-  "include": ["derive-tier.ts", "derive-tier-cli.ts"]
+  "include": [
+    "derive-tier.ts",
+    "derive-tier-cli.ts",
+    "trace-coverage.ts",
+    "trace-coverage-cli.ts"
+  ]
 }

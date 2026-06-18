@@ -11,6 +11,11 @@
 ## Verifikation
 - Tests/CI-Config/Thresholds/diese Datei sind geschützt (CODEOWNERS + separates Approval).
 - Coverage- und Mutation-Score sind **Ratchets** (nur steigend).
+- Jedes EARS-Akzeptanzkriterium trägt eine ID der Form `REQ-<CONTEXT>-<nr>` (z.B. `REQ-BAL-01`) und
+  **muss von mindestens einem Test referenziert werden** (ID im Test-Namen). Das `trace`-Gate erzwingt
+  beide Richtungen: kein ungetestetes Kriterium, keine verwaiste Test-Referenz auf ein nicht
+  existierendes Kriterium. So wird Spec-Drift **laut** statt still — ein Kriterium, dem der Code
+  davonläuft, hinterlässt einen roten Test, statt unbemerkt zu veralten.
 - Der Agent committet via Branch+PR, **mergt nicht** und umgeht keine Gates (`--no-verify` wirkungslos,
   Gates laufen server-seitig).
 
