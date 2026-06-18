@@ -1,17 +1,17 @@
 {
   "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
-  "_comment": "Mutation testing gate (Säule 2, the assert(true)-killer). Scope: the PURE balance projection only — see vitest.mutation.config.ts for why DB/HTTP/integration files are excluded. The fast-check property test from Task 8 is what kills the arithmetic mutants. 'break' is set just below the achieved baseline so it acts as a ratchet.",
+  "_comment": "Mutation testing gate (Säule 2, the assert(true)-killer). Scope: every *.pure.ts module — pure, side-effect-free domain logic — mutated IN FULL. This operationalises the framework's 'pull risk logic out of the I/O' rule: pure logic is mutation-tested cheaply (no Testcontainers per mutant), while DB/HTTP/integration code is covered by integration tests + the trace gate, not by mutation (see vitest.mutation.config.ts for the exclusions). The convention scales: a new *.pure.ts module is picked up automatically, no line ranges to maintain.",
   "packageManager": "pnpm",
   "testRunner": "vitest",
   "plugins": ["@stryker-mutator/vitest-runner"],
   "vitest": {
     "configFile": "vitest.mutation.config.ts"
   },
-  "mutate": ["services/wallet-service/src/balance.ts:27-28"],
+  "mutate": ["**/src/**/*.pure.ts"],
   "ignorePatterns": ["dist", "dist-test", "coverage"],
   "reporters": ["html", "clear-text", "progress"],
   "coverageAnalysis": "perTest",
-  "_thresholds_comment": "Achieved baseline on projectBalance is 100% (3/3 mutants killed by the fast-check property test). break=100 makes this a strict ratchet: any surviving mutant fails CI.",
+  "_thresholds_comment": "Baseline on the pure modules is 100% (the fast-check property tests kill the arithmetic mutants). break=100 makes this a strict ratchet: any surviving mutant fails CI.",
   "thresholds": {
     "high": 100,
     "low": 90,
