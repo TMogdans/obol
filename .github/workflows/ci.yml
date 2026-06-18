@@ -193,3 +193,23 @@ jobs:
           if [ "$TIER" = "T3" ]; then
             echo "T3 change (migrations / auth / contracts). A CODEOWNER review is required — enforced by branch protection (Task 11)." >> "$GITHUB_STEP_SUMMARY"
           fi
+
+  trace:
+    name: trace (spec ↔ test traceability)
+    runs-on: ubuntu-latest
+    # Every EARS criterion (a REQ-id in a spec.md) must be referenced by at
+    # least one test, and no test may reference a criterion that no spec
+    # declares. This is the spec-level Säule-3 gate: it makes spec drift LOUD —
+    # a criterion the code outgrows leaves a referencing test red instead of
+    # drifting silently. Logic in tools/trace-coverage.ts (protected via
+    # CODEOWNERS + tier-map T3).
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable Corepack
+        run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run trace

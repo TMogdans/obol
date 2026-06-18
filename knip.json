@@ -15,7 +15,12 @@
       "project": ["src/**/*.ts"]
     },
     "tools": {
-      "entry": ["derive-tier-cli.ts", "derive-tier.test.ts"],
+      "entry": [
+        "derive-tier-cli.ts",
+        "derive-tier.test.ts",
+        "trace-coverage-cli.ts",
+        "trace-coverage.test.ts"
+      ],
       "project": ["*.ts"]
     }
   }
