@@ -22,11 +22,7 @@ aufladen und ausgeben zu können.
 
 ## Out of Scope
 - Top-up / Spend / Kontostand — eigene Specs.
-- Multi-Currency — `currency` ist serverseitig fix `"EUR"` (Altlast-Spalte);
-  echte Währungswahl wäre eine eigene Spec.
+- Multi-Currency — `currency` ist serverseitig fix `"EUR"`; echte Währungswahl
+  wäre eine eigene Spec.
 - Konto schließen/löschen — die Domain ist append-only.
 - Authentifizierung / Autorisierung.
-
-## Tier
-T2 — berührt eine Migration (`account.idempotency_key`), aber keinen
-contracts/**-Vertrag und keine Service-Grenze (kein NATS-Event).

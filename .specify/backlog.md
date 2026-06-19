@@ -2,18 +2,24 @@
 
 Priorisierte Feature-Reihenfolge für das Obol-Wallet, abgeleitet aus einem
 (angenommenen) Event Storming. Die Reihenfolge folgt dem fachlichen Lebenszyklus
-eines Kontos und gleichzeitig einer aufsteigenden Tier-Staffelung — vom rein
-lesenden T1 über service-lokale T2-Schreiboperationen bis zum service-kreuzenden
-T3 mit Event-Contract.
+eines Kontos. Das Tier ist **abgeleitet, nicht gewählt** (deterministisch aus den
+berührten Pfaden, `tools/tier-map.json`) — es steigt daher nicht monoton mit der
+fachlichen Reihenfolge: schon „Konto eröffnen" landet bei T3, weil es eine
+Migration anfasst.
 
 | # | Feature | Tier | Spec | Status |
 |---|---------|------|------|--------|
 | 0 | Kontostand abfragen | T1 | `specs/balance-query/` | ✅ gebaut |
-| 1 | Konto eröffnen | T2 | `specs/account-open/` | 📝 Spec |
-| 2 | Top-up (Gutschrift) | T2 | _tbd_ | ⏳ |
+| 1 | Konto eröffnen | T3 ¹ | `specs/account-open/` | 📝 Spec |
+| 2 | Top-up (Gutschrift) | T2 ² | _tbd_ | ⏳ |
 | 3 | Einträge auflisten | T1 | _tbd_ | ⏳ |
 | 4 | Kontoauszug-Event + statement-service-Consumer | T3 | _tbd_ | ⏳ |
 | 5 | Spend (Belastung) | T3 | _tbd_ | ⏳ |
+
+¹ T3 **wegen der Migration** (`account.idempotency_key`), nicht wegen der
+fachlichen Komplexität — `services/*/migrations/**` ⇒ T3, upgrade-wins.
+² T2, solange Top-up nur `ledger_entry` schreibt (Spalte existiert bereits) und
+keinen `contracts/**`-Event-Vertrag anfasst; sonst T3.
 
 ## Begründung der Reihenfolge
 - **Konto eröffnen zuerst:** Ohne Konto gibt es nichts aufzuladen oder
