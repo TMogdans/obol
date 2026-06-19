@@ -6,22 +6,16 @@
 # version-gated lints behave deterministically in CI.
 pg_version = "16.0"
 
-# Baseline exclusions — each is a documented, deliberate decision, NOT a blanket
-# mute. They apply to the bootstrap migration (0001_init.sql), which creates the
-# schema on an empty database. The excluded rules guard against locking a LIVE,
-# populated table; on first-ever creation there is no data and no concurrent
-# traffic, so they are inapplicable here. Any FUTURE migration that alters a
-# populated table is still fully linted by every other rule.
-excluded_rules = [
-  # CREATE INDEX (non-concurrent) blocks writes only on a table that already
-  # holds rows. The index here is created together with its brand-new, empty
-  # table, so there is nothing to block.
-  "require-concurrent-index-creation",
-  # statement_timeout protects against a slow statement holding locks on a busy
-  # table. The bootstrap runs once, transactionally, against an empty database.
-  "require-timeout-settings",
-  # IF NOT EXISTS / rerun-robustness: the migrator (Task 3) runs each migration
-  # exactly once inside a transaction and records it; partial-failure reruns are
-  # handled by the transactional migrator, not by IF NOT EXISTS guards.
-  "prefer-robust-stmts",
-]
+# The PgMigrator wraps every migration file in a transaction (sql.withTransaction).
+# Telling squawk this lets it judge rules correctly instead of conservatively:
+# it stops demanding `IF NOT EXISTS` (prefer-robust-stmts), because a migration
+# that fails part way through rolls back atomically rather than half-applying.
+assume_in_transaction = true
+
+# There are deliberately NO global `excluded_rules`. An earlier version muted
+# require-concurrent-index-creation / require-timeout-settings / prefer-robust-stmts
+# here "for the bootstrap migration" — but a global mute silently exempts EVERY
+# later migration too, which is exactly the kind of gap this gate exists to
+# prevent. Bootstrap-only and genuinely-unavoidable exemptions now live as
+# visible, per-statement `-- squawk-ignore` comments inside the migration files
+# themselves, where a reviewer sees them in the diff.
