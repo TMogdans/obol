@@ -1,0 +1,79 @@
+# devloop binding anchor (b) — AUTHORITATIVE fail-closed required check (design §5.1/§10.1).
+# Copied into a target repo by `/devloop:init` and registered as a REQUIRED status check on
+# the protected runner. It fails closed unless a HUMAN (CODEOWNER — not the agent, not the PR
+# author) approved the current HEAD, and the diff does not touch the protected set. A skipped
+# human stop becomes a visible RED gap, not a silent pass; the agent cannot self-approve.
+#
+# This file MUST contain the string "devloop-precondition-check" so checkGuardians() can
+# verify the binding anchor is wired in the target repo (it is itself a guardian).
+#
+# Obol pilot adaptations (vs. the stock /devloop:init template):
+#   - Node 22 + Corepack/pnpm (Obol's stack) and `pnpm install` so the git-pinned `devloop`
+#     dependency lands in node_modules and the CLIs below resolve.
+#   - The tier map is NOT duplicated: it is derived inline from Obol's existing, CODEOWNERS-
+#     protected `tools/tier-map.json` (format `{Tier:[globs]}`), adapted to the `{rules,default}`
+#     shape devloop's derive-tier expects. Single source of truth, no drift.
+#
+# Also enforce, OUTSIDE this workflow, via Branch Protection (the t3-merge stop):
+#   - Require a review from CODEOWNERS  - Dismiss stale approvals on push
+#   - Do not allow the agent identity to approve/merge  - Require this check to pass
+
+name: devloop-precondition-check
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  pull_request_review:
+    types: [submitted, dismissed]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  devloop-precondition-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Enable Corepack
+        run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+      # Brings in the git-pinned `devloop` devDependency, so node_modules/devloop/dist/cli/*
+      # resolves below. --frozen-lockfile keeps the pinned commit honest.
+      - run: pnpm install --frozen-lockfile
+
+      - name: Compute the AUTHORITATIVE tier from the diff (not agent-declared, §9/§10)
+        run: |
+          # Single source of truth: adapt Obol's tools/tier-map.json ({Tier:[globs]}) into
+          # the {rules:[{tier,anyOf}],default} shape devloop's derive-tier expects.
+          TIER_MAP=$(jq '{rules: [to_entries[] | {tier: .key, anyOf: .value}], default: "T3"}' tools/tier-map.json)
+          DIFF=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | jq -R . | jq -s .)
+          jq -n --argjson touched "$DIFF" --argjson tierMap "$TIER_MAP" \
+            '{touched:$touched, tierMap:$tierMap}' \
+            | node node_modules/devloop/dist/cli/derive-tier.js | tee tier.json
+
+      - name: Verify HUMAN approval on HEAD + no gate-tamper (fail-closed)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # Reviews from GitHub (the authoritative, unforgeable channel).
+          REVIEWS=$(gh api "repos/${{ github.repository }}/pulls/$PR/reviews" \
+            --jq '[.[] | {user: .user.login, state: .state, commit_id: .commit_id}]')
+          DIFF=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | jq -R . | jq -s .)
+          # botLogins / protectedGlobs come from .devloop config in the repo.
+          jq -n \
+            --argjson reviews "$REVIEWS" \
+            --arg prAuthor "$AUTHOR" \
+            --arg headSha "$HEAD_SHA" \
+            --argjson bots "$(cat .devloop/bot-logins.json)" \
+            --argjson diff "$DIFF" \
+            --argjson protected "$(cat .devloop/protected-globs.json)" \
+            '{reviews:$reviews, prAuthor:$prAuthor, headSha:$headSha, botLogins:$bots, diffPaths:$diff, protectedGlobs:$protected}' \
+            | node node_modules/devloop/dist/cli/verify-review.js

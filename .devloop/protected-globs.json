@@ -1,0 +1,19 @@
+[
+  ".github/**",
+  ".devloop/**",
+  ".specify/**",
+  "tools/**",
+  "stryker.config.json",
+  "vitest.mutation.config.ts",
+  "vitest.config.ts",
+  ".dependency-cruiser.cjs",
+  ".squawk.toml",
+  "knip.json",
+  ".semgrepignore",
+  "biome.json",
+  "tsconfig.base.json",
+  "tsconfig.json",
+  "package.json",
+  "pnpm-lock.yaml",
+  "pnpm-workspace.yaml"
+]
