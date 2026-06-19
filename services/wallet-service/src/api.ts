@@ -11,6 +11,59 @@ const Balance = Schema.Struct({
 });
 
 /**
+ * The account fields returned by `POST /accounts`. `currency` is part of the
+ * stored account state (server-set to "EUR" for now) and echoed back so the
+ * caller sees the full record it just created.
+ */
+const AccountFields = {
+  id: Schema.String,
+  ownerId: Schema.String,
+  currency: Schema.String,
+  createdAt: Schema.String,
+};
+
+/**
+ * The two success outcomes of `POST /accounts`, kept as DISTINCT tagged types
+ * so the same account body can map to two different HTTP statuses:
+ *   - {@link AccountCreated} → 201, a new account was inserted (REQ-ACC-01)
+ *   - {@link AccountExisted} → 200, the `Idempotency-Key` replayed an existing
+ *     account, nothing was inserted (REQ-ACC-02)
+ *
+ * A plain `Account` struct returned twice would be ambiguous at encode time —
+ * Effect could not tell which status to attach. The `_tag` discriminator makes
+ * the choice deterministic, and doubles as a self-describing signal to the
+ * caller ("created" vs "already existed").
+ */
+export class AccountCreated extends Schema.TaggedClass<AccountCreated>()(
+  "AccountCreated",
+  AccountFields,
+) {}
+
+export class AccountExisted extends Schema.TaggedClass<AccountExisted>()(
+  "AccountExisted",
+  AccountFields,
+) {}
+
+/**
+ * Request body for `POST /accounts`. `ownerId` must be a non-empty (trimmed)
+ * string; an empty/whitespace value fails decoding and the framework returns a
+ * structured 400 before the handler runs (REQ-ACC-04). `currency` is NOT part
+ * of the request — it is server-set, see {@link AccountFields}.
+ */
+const CreateAccountPayload = Schema.Struct({
+  ownerId: Schema.NonEmptyTrimmedString,
+});
+
+/**
+ * Required request headers for `POST /accounts`. The `Idempotency-Key` carries
+ * the idempotency token (header names are normalised to lowercase by the
+ * framework). A missing key fails header decoding → structured 400 (REQ-ACC-03).
+ */
+const CreateAccountHeaders = Schema.Struct({
+  "idempotency-key": Schema.NonEmptyTrimmedString,
+});
+
+/**
  * Path parameters for `/accounts/:id/balance`. The `id` segment is decoded into
  * this struct and handed to the handler as `path.id`.
  */
@@ -46,6 +99,13 @@ const Health = Schema.Struct({
  */
 export class WalletApi extends HttpApi.make("wallet").add(
   HttpApiGroup.make("accounts")
+    .add(
+      HttpApiEndpoint.post("createAccount", "/accounts")
+        .setPayload(CreateAccountPayload)
+        .setHeaders(CreateAccountHeaders)
+        .addSuccess(AccountCreated, { status: 201 })
+        .addSuccess(AccountExisted, { status: 200 }),
+    )
     .add(
       HttpApiEndpoint.get("balance", "/accounts/:id/balance")
         .setPath(BalancePath)

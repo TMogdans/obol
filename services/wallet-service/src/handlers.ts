@@ -1,10 +1,23 @@
 import { HttpApiBuilder } from "@effect/platform";
 import { Effect } from "effect";
-import { AccountNotFound, WalletApi } from "./api.js";
+import { AccountRepo } from "./accounts.js";
+import {
+  AccountCreated,
+  AccountExisted,
+  AccountNotFound,
+  WalletApi,
+} from "./api.js";
 import { BalanceRepo } from "./balance.js";
 
 /**
  * Implements the `accounts` group of {@link WalletApi}.
+ *
+ * `createAccount` opens an account idempotently: it hands `ownerId` (already
+ * validated non-empty by the payload schema) and the `Idempotency-Key` header to
+ * {@link AccountRepo.open}, then maps the outcome to the matching status — a new
+ * row to {@link AccountCreated} (201), a replayed one to {@link AccountExisted}
+ * (200). Decoding already rejected a missing key / empty owner with a 400, so
+ * the handler only sees well-formed input.
  *
  * `balance` is where the 200-vs-404 distinction lives: `BalanceRepo.balanceFor`
  * returns `0` both for an existing empty account and for an unknown one, so the
@@ -14,20 +27,33 @@ import { BalanceRepo } from "./balance.js";
  *
  * `health` is a static liveness response.
  *
- * The layer requires `BalanceRepo` (left open for the composition root to
- * provide, e.g. `BalanceRepo.Default` over `DbLive`); `SqlError` from the repo
- * is treated as an unexpected defect (it is not part of the endpoint's declared
- * error channel), which surfaces as a 500 rather than leaking as a typed client
- * error.
+ * The layer requires `AccountRepo` + `BalanceRepo` (left open for the
+ * composition root to provide over `DbLive`); `SqlError` from a repo is treated
+ * as an unexpected defect (not part of the endpoints' declared error channels),
+ * which surfaces as a 500 rather than leaking as a typed client error.
  */
 export const AccountsHandlersLive = HttpApiBuilder.group(
   WalletApi,
   "accounts",
   (handlers) =>
     Effect.gen(function* () {
+      const accounts = yield* AccountRepo;
       const repo = yield* BalanceRepo;
 
       return handlers
+        .handle("createAccount", ({ payload, headers }) =>
+          Effect.gen(function* () {
+            // SqlError is not a declared client error here: a DB fault is a
+            // defect (→ 500), so orDie it. Validation (missing key / empty
+            // owner) was already handled as a 400 at decode time.
+            const result = yield* accounts
+              .open(payload.ownerId, headers["idempotency-key"])
+              .pipe(Effect.orDie);
+            return result.created
+              ? new AccountCreated(result.account)
+              : new AccountExisted(result.account);
+          }),
+        )
         .handle("balance", ({ path }) =>
           Effect.gen(function* () {
             // `SqlError` is not part of this endpoint's declared error channel:
