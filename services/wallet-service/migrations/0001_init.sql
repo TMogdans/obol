@@ -1,3 +1,10 @@
+-- squawk-ignore-file require-timeout-settings
+-- Bootstrap migration: creates the whole schema on an empty database. lock_timeout
+-- / statement_timeout guard against a slow statement holding locks on a LIVE,
+-- populated table; here there is no data and no concurrent traffic, so they are
+-- inapplicable. This exemption is scoped to THIS file on purpose — later
+-- migrations that touch populated tables are fully linted (see 0002).
+
 CREATE TABLE account (
   id          text PRIMARY KEY,
   owner_id    text NOT NULL,
