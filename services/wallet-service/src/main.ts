@@ -6,6 +6,7 @@ import {
 } from "@effect/platform";
 import { NodeHttpServer } from "@effect/platform-node";
 import { Config, Effect, Layer } from "effect";
+import { AccountRepo } from "./accounts.js";
 import { WalletApi } from "./api.js";
 import { BalanceRepo } from "./balance.js";
 import { DbLive } from "./db.js";
@@ -16,10 +17,10 @@ import { TelemetryLive } from "./telemetry.js";
  * The fully wired wallet HTTP application as a single `Layer`, minus the
  * transport. From the inside out:
  *
- *   BalanceRepo.Default ← DbLive            (repo over a real PgClient)
- *   AccountsHandlersLive ← BalanceRepo      (endpoint implementations)
- *   HttpApiBuilder.api(WalletApi) ← group   (the served HttpApi)
- *   HttpApiBuilder.serve()                  (router → HttpApp, needs HttpServer)
+ *   AccountRepo/BalanceRepo.Default ← DbLive  (repos over a real PgClient)
+ *   AccountsHandlersLive ← Account/BalanceRepo (endpoint implementations)
+ *   HttpApiBuilder.api(WalletApi) ← group     (the served HttpApi)
+ *   HttpApiBuilder.serve()                    (router → HttpApp, needs HttpServer)
  *
  * It deliberately leaves `HttpServer` unsatisfied so the caller chooses the
  * transport: `NodeHttpServer.layer(createServer, ...)` in production (see
@@ -42,6 +43,7 @@ export const WalletApiLive: Layer.Layer<
 > = HttpApiBuilder.serve().pipe(
   Layer.provide(HttpApiBuilder.api(WalletApi)),
   Layer.provide(AccountsHandlersLive),
+  Layer.provide(AccountRepo.Default.pipe(Layer.provide(DbLive), Layer.orDie)),
   Layer.provide(BalanceRepo.Default.pipe(Layer.provide(DbLive), Layer.orDie)),
 );
 
