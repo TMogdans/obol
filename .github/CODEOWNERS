@@ -12,6 +12,11 @@
 # Specification & constitution (the rules the gates enforce)
 /.specify/                  @tmogdans
 
+# devloop binding-anchor config (bot identity, protected globs) — guard the guard:
+# the agent must not be able to rewrite who counts as a bot or what the gate treats
+# as protected. The precondition-check workflow itself is covered by /.github/ below.
+/.devloop/                  @tmogdans
+
 # CI definition (the gates themselves)
 /.github/                   @tmogdans
 /.github/workflows/         @tmogdans
