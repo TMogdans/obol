@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Bash(pnpm install *)",
+      "Bash(pnpm run *)",
+      "Bash(pnpm exec *)",
+      "Bash(git *)",
+      "Bash(gh api *)",
+      "Bash(gh run *)",
+      "Bash(node node_modules/devloop/dist/cli/check-guardians.js .)",
+      "Bash(node tools/devloop-precondition-gate.mjs)",
+      "Bash(curl -sS --max-time 15 -o /dev/null -w \"%{http_code}\\\\n\" https://api.github.com)",
+      "Bash(curl -sS --max-time 15 -o /dev/null -w \"%{http_code}\\\\n\" https://github.com)",
+      "Bash(curl -sS --max-time 15 -o /dev/null -w \"%{http_code}\\\\n\" https://registry.npmjs.org)"
+    ],
+    "deny": [
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "allowUnsandboxedCommands": true,
+    "filesystem": {
+      "allowWrite": [
+        "~/Library/pnpm",
+        "~/.cache"
+      ],
+      "denyRead": [
+        "~/.ssh",
+        "~/.aws"
+      ]
+    },
+    "network": {
+      "allowedDomains": [
+        "registry.npmjs.org",
+        "github.com",
+        "api.github.com",
+        "codeload.github.com",
+        "objects.githubusercontent.com"
+      ]
+    },
+    "excludedCommands": [
+      "gh *"
+    ]
+  }
+}
