@@ -25,7 +25,7 @@
     "@types/node": "^22",
     "@vitest/coverage-v8": "2.1.9",
     "dependency-cruiser": "17.4.3",
-    "devloop": "github:mayflower/devloop#9577645544abf73bb7278570fd86cf4f3cfa2851",
+    "devloop": "github:mayflower/devloop#v0.2.1",
     "effect": "^3",
     "knip": "^5.40.0",
     "squawk-cli": "2.58.0",

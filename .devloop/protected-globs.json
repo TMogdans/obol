@@ -1,7 +1,7 @@
 [
   ".github/**",
   ".devloop/**",
-  ".specify/**",
+  ".specify/constitution.md",
   "tools/**",
   "stryker.config.json",
   "vitest.mutation.config.ts",
