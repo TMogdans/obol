@@ -43,3 +43,13 @@
 /package.json               @tmogdans
 /pnpm-lock.yaml             @tmogdans
 /pnpm-workspace.yaml        @tmogdans
+
+# Tier-T2/T3-Review-by-path (§9 unter devloop v0.3.0).
+# Unter dem v0.3.0-Modell wird das T2/T3-Mensch-Tor NICHT mehr durch einen failenden
+# precondition-check erzwungen, sondern GitHub-nativ über CODEOWNERS-by-path. Damit jeder
+# tier-map-T2/T3-Pfad ein CODEOWNER-Review verlangt, MUSS er hier abgedeckt sein — der
+# Drift-Wächter (check-codeowners, CI-Step) hält diese Invariante fail-closed.
+# T2: services/**  ·  T3: services/*/migrations/**, **/auth/**, packages/contracts/** (tools/** oben).
+/services/                  @tmogdans
+/packages/contracts/        @tmogdans
+**/auth/                    @tmogdans
