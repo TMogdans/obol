@@ -80,3 +80,10 @@ devloop-Seite — keine Theorie, sondern was im realen Repo passiert ist.
 - Ausgang: gefangen — Auto-Merge war scharf (squash), hielt den Merge aber zurück, bis `lint` grün war; Fix von Hand (Edit-Tool) bzw. über einen Nicht-Dot-Temppfad, dann grün.
 - Beleg: PR #14, Commit `7e02714`; Biome 1.9.4
 - Lehre: Zwei Lehren in einem — (1) ein Autofixer mit Dot-Pfad-Blindheit fixt genau die versteckten Dateien nicht, der Gate-Befund selbst stimmt aber; (2) der Auto-Merge gatet korrekt auf *alle* Required Checks, nicht nur auf Approval — ein roter `lint` blockiert auch einen approval-freien T0/T1-PR, genau wie §9 es will.
+
+## 2026-06-20 — Strict + Reihenfolge: der nachrangige Auto-Merge-PR muss nachgezogen werden
+- Auslöser: Branch-Protection `strict` (up-to-date vor Merge) + nativer Auto-Merge bei zwei gleichzeitigen T0/T1-Bot-PRs.
+- Was passierte: PR #14 (Settings-Split) und #15 (Pilot-Log) liefen parallel mit scharfem Auto-Merge. Der schnellere #15 (reines Markdown) mergte zuerst und rückte main vor; #14 fiel damit auf `mergeable_state=behind` und blieb hängen — GitHubs Auto-Merge zog die zurückgefallene Branch **nicht** von selbst nach. Erst ein `update-branch` (Bot, REST) erzeugte den Merge-Commit; darauf läuft die CI erneut und der scharfe Auto-Merge vollzieht den Merge, sobald grün.
+- Ausgang: aufgelöst ohne Fehlmerge — `strict` hielt fail-closed (kein ungetesteter Merge), aber der `update-branch`-Anstoß war manuell nötig.
+- Beleg: PR #14 (behind → `update-branch` → Merge-Commit `66eca09`), PR #15 (mergte zuerst, rückte main vor)
+- Lehre: Bei `strict` + paralleler Auto-Merge ist ein `update-branch`-Zyklus für den nachrangigen PR der Normalfall — die Serialisierung ist gewollt (kein Merge auf veraltetem Stand), aber Auto-Merge aktualisiert eine behind-Branch nicht automatisch; das braucht das Repo-Setting „automatically update" oder einen expliziten Trigger. *Nebenbefund (Tooling, nicht Käfig):* meine Status-Abfragen liefen anfangs unauthentifiziert ins 60/h-Rate-Limit — leere Antworten sahen wie „CI nie gelaufen" aus und führten zu einer Fehldiagnose; GitHub-Status daher immer authentifiziert abfragen.
