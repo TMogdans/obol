@@ -92,6 +92,26 @@ export class AccountRepo extends Effect.Service<AccountRepo>()("AccountRepo", {
         return { account: toAccount(prior), created: false };
       });
 
-    return { open } as const;
+    /**
+     * Read a single account by its primary key (REQ-ACCD-01/07). Uses an
+     * equality lookup on the `id` PK (`WHERE id = …`) — an indexed access, never
+     * a full table scan — and projects `created_at` via `::text` so it crosses
+     * the boundary as a driver-independent ISO-8601 string (REQ-ACCD-03).
+     *
+     * Returns the {@link Account} if present or `undefined` if no such row
+     * exists; a `SqlError` (e.g. the table is gone) propagates so the handler
+     * can treat it as a defect (→ 500) rather than misreading it as "not found"
+     * (REQ-ACCD-05).
+     */
+    const getById = (
+      id: string,
+    ): Effect.Effect<Account | undefined, SqlError> =>
+      sql<AccountRow>`
+        SELECT id, owner_id, currency, created_at::text AS created_at
+        FROM account
+        WHERE id = ${id}
+      `.pipe(Effect.map((rows) => (rows[0] ? toAccount(rows[0]) : undefined)));
+
+    return { open, getById } as const;
   }),
 }) {}

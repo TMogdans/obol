@@ -23,6 +23,16 @@ const AccountFields = {
 };
 
 /**
+ * Success body for the account-detail read (`GET /accounts/:id`, REQ-ACCD-01):
+ * exactly the stored account record `{ id, ownerId, currency, createdAt }`
+ * (Review-Decision A2 — no embedded balance). Defined LOCALLY here (like
+ * {@link Balance}), NOT in `packages/contracts`, so the change stays Tier T2
+ * (Review-Decision A3 / REQ-ACCD-06). `createdAt` is a plain ISO-8601 string —
+ * the repo projects it via `created_at::text` (REQ-ACCD-03).
+ */
+const Account = Schema.Struct(AccountFields);
+
+/**
  * The two success outcomes of `POST /accounts`, kept as DISTINCT tagged types
  * so the same account body can map to two different HTTP statuses:
  *   - {@link AccountCreated} → 201, a new account was inserted (REQ-ACC-01)
@@ -72,6 +82,15 @@ const BalancePath = Schema.Struct({
 });
 
 /**
+ * Path parameters for `GET /accounts/:id` (account-detail). The `id` segment is
+ * decoded into this struct and handed to the handler as `path.id`. As an opaque
+ * string — no format check is enforced (Review-Decision A6).
+ */
+const AccountPath = Schema.Struct({
+  id: Schema.String,
+});
+
+/**
  * Structured error returned when the requested account does not exist. As a
  * `Schema.TaggedError` it serialises to a JSON body carrying `_tag` and
  * `accountId`, and `addError(..., { status: 404 })` maps it to HTTP 404.
@@ -110,6 +129,12 @@ export class WalletApi extends HttpApi.make("wallet").add(
       HttpApiEndpoint.get("balance", "/accounts/:id/balance")
         .setPath(BalancePath)
         .addSuccess(Balance)
+        .addError(AccountNotFound, { status: 404 }),
+    )
+    .add(
+      HttpApiEndpoint.get("getAccount", "/accounts/:id")
+        .setPath(AccountPath)
+        .addSuccess(Account)
         .addError(AccountNotFound, { status: 404 }),
     )
     .add(HttpApiEndpoint.get("health", "/health").addSuccess(Health)),

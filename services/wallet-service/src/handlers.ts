@@ -69,6 +69,19 @@ export const AccountsHandlersLive = HttpApiBuilder.group(
             return { accountId: path.id, balance };
           }),
         )
+        .handle("getAccount", ({ path }) =>
+          Effect.gen(function* () {
+            // `SqlError` is not part of this endpoint's declared error channel:
+            // a DB fault is an unexpected defect (→ 500), not a typed client
+            // error, so `orDie` it (REQ-ACCD-05). The only typed failure is
+            // AccountNotFound (→ 404, REQ-ACCD-02).
+            const account = yield* accounts.getById(path.id).pipe(Effect.orDie);
+            if (account === undefined) {
+              return yield* new AccountNotFound({ accountId: path.id });
+            }
+            return account;
+          }),
+        )
         .handle("health", () => Effect.succeed({ status: "ok" as const }));
     }),
 );
