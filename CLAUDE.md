@@ -26,13 +26,22 @@ agpr <gh pr args>   # öffnet PR als Bot, z.B.  agpr --base main --head <branch>
 Volldoku: [infra/agent-identity.md](./infra/agent-identity.md). `origin` und der persönliche
 `gh`-Login bleiben unangetastet.
 
-## Wie Änderungen nach main kommen
+## Wie Änderungen nach main kommen (tier-gestuft, §9)
 
-- **Normaler Code/Docs (T1/T2):** als **Bot** pushen + PR öffnen → Mensch approved → Gates grün →
-  Merge. (Pusht der Mensch selbst, ist er PR-Autor und kann nicht approven → nur Admin-Override.)
-- **Geschützter Satz** (CI-Workflows, Gate-Configs, `tools/`, `.devloop/`, Manifeste — siehe
-  [.github/CODEOWNERS](./.github/CODEOWNERS)): löst den `protected-set-touched`-Alarm aus und
-  braucht den Admin-Override (Käfig-Bau, T3) — das ist gewollt, kein Schlupfloch.
+Das Tier wird **deterministisch aus den berührten Pfaden** abgeleitet (`tools/tier-map.json` +
+`tools/derive-tier-cli.ts`), nie selbst deklariert. Der `devloop-precondition-check` **konsumiert**
+dieses Tier (eine Wahrheit, keine zweite Ableitung) und gatet den Merge gestuft:
+
+- **T0/T1** (unkritisch, z.B. die meisten Docs): als **Bot** pushen + PR öffnen → bei grünen Gates
+  **Auto-Merge ohne menschliches Approval** (es gibt nichts freizugeben; der Self-Approval-Schutz
+  engagiert hier gar nicht).
+- **T2** (`services/**`): als **Bot** PR öffnen → **required Reviewer** (ein Mensch approved den
+  aktuellen HEAD) → Gates grün → Merge.
+- **T3** (`services/*/migrations/**`, `**/auth/**`, `packages/contracts/**`, `tools/**`) **oder
+  geschützter Satz** (CI-Workflows, Gate-Configs, `.devloop/`, Manifeste — siehe
+  [.github/CODEOWNERS](./.github/CODEOWNERS)): **Mensch-Gate**; eine Berührung des geschützten Satzes
+  löst zusätzlich `protected-set-touched` aus und braucht den **Admin-Override** (Käfig-Bau) —
+  gewollt, kein Schlupfloch.
 - **Features:** durch `/devloop:loop` schicken (specify → spec-to-tests → implement → critic).
 
 ## Pilot-Log
