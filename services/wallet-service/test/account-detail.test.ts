@@ -87,7 +87,7 @@ afterAll(async () => {
   }
 });
 
-it.effect.skip(
+it.effect(
   "[REQ-ACCD-01] returns exactly { id, ownerId, currency, createdAt } for an existing account — no embedded balance",
   () =>
     Effect.gen(function* () {
@@ -111,7 +111,7 @@ it.effect.skip(
     }).pipe(Effect.provide(ServerLive)),
 );
 
-it.effect.skip(
+it.effect(
   "[REQ-ACCD-02] delivers createdAt as an ISO-8601 string and currency as the stored value",
   () =>
     Effect.gen(function* () {
@@ -131,7 +131,7 @@ it.effect.skip(
     }).pipe(Effect.provide(ServerLive)),
 );
 
-it.effect.skip(
+it.effect(
   "[REQ-ACCD-03] returns 404 with the structured AccountNotFound error (_tag + accountId) for a missing account",
   () =>
     Effect.gen(function* () {
@@ -147,7 +147,7 @@ it.effect.skip(
     }).pipe(Effect.provide(ServerLive)),
 );
 
-it.effect.skip(
+it.effect(
   "[REQ-ACCD-04] surfaces a read-time SqlError as a 500 defect, not a typed client error",
   () =>
     Effect.gen(function* () {
@@ -183,7 +183,7 @@ it.effect.skip(
     }).pipe(Effect.provide(Layer.mergeAll(ServerLive, SqlLive))),
 );
 
-it.effect.skip(
+it.effect(
   "[REQ-ACCD-05] performs no state change — the read is read-only and idempotent",
   () =>
     Effect.gen(function* () {
@@ -231,7 +231,7 @@ it.effect.skip(
     }).pipe(Effect.provide(Layer.mergeAll(ServerLive, SqlLive))),
 );
 
-it.effect.skip(
+it.effect(
   "[REQ-ACCD-06] reads the account via an indexed primary-key lookup (WHERE id = …), not a full scan",
   () =>
     Effect.gen(function* () {
@@ -249,7 +249,7 @@ it.effect.skip(
     }).pipe(Effect.provide(SqlLive)),
 );
 
-it.effect.skip(
+it.effect(
   "[REQ-ACCD-07] keeps the response type local to wallet-service (no contracts touch, no cross-service import, no cycle/orphan) — anchored on `pnpm run arch`",
   () =>
     Effect.sync(() => {
@@ -268,7 +268,7 @@ it.effect.skip(
     }),
 );
 
-it.effect.skip(
+it.effect(
   "[REQ-ACCD-08] treats {id} as an opaque string path param — no format/schema check",
   () =>
     Effect.gen(function* () {
