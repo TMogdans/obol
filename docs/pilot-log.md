@@ -52,3 +52,10 @@ devloop-Seite — keine Theorie, sondern was im realen Repo passiert ist.
 - Ausgang: Lücke sichtbar geworden → behoben in PR #9: der Check **konsumiert** jetzt Obols Tier-Job (`tools/derive-tier-cli.ts`, einzige Wahrheit, keine zweite Ableitung) und gatet tier-gestuft (T0/T1 grün ohne Approval, T2 Reviewer, T3/protected Mensch-Gate). Das Review-Requirement wandert von der globalen Branch-Protection in den Check.
 - Beleg: Übergabe devloop-Agent (abgestimmt mit Tobias 2026-06-20); PR #9
 - Lehre: Ein Gate muss das Tier **kennen** (konsumieren ≠ ableiten), um §9-gestuft zu wirken — ein tier-blindes Gate kollabiert die Risiko-Staffel auf „alles T3" und frisst den Durchsatz-Gewinn. Die Evolutions-Schleife in Aktion: der Pilot machte eine *Klasse* sichtbar, nicht nur einen Einzelfall (der Vorbehalt: T1-Auto-Merge ist hier ok, weil Obol Pilot/Referenz ist, nicht Prod mit echten Nutzern — der T2-Floor aus §9 greift erst dort).
+
+## 2026-06-20 — Capability-Grenze: der Bot kann den Käfig nicht selbst bauen
+- Auslöser: GitHub-Push-Schutz (App-Permission) — geschützter Satz (`.github/workflows/`) vs. Bot-Identität.
+- Was passierte: Beim Versuch, den tier-gestuften Check (PR #9) als **Bot** zu pushen, lehnte GitHub ab: *„refusing to allow a GitHub App to create or update workflow … without `workflows` permission"*. Die Agent-App hat **bewusst keinen** Workflow-Scope (`infra/agent-identity.md`, §7 defense-in-depth).
+- Ausgang: hart gefangen — der **Mensch** (mit Workflow-Rechten) pushte den Branch; der Bot erstellte nur den PR. Die Grenze hielt **ohne** Zutun von CODEOWNERS.
+- Beleg: PR #9 (Push-Reject), Commit `abbb017`
+- Lehre: §1.4/§7 in Reinform — die Workflow-Änderung (Käfig-Bau) ist dem Bot nicht per *Konvention* (CODEOWNERS), sondern per fehlender *Capability* verwehrt. Eine **durchgesetzte** Grenze schlägt eine **versprochene**: selbst ein kompromittierter Bot-Token könnte die CI-Gates nicht umschreiben. Zwei Schichten greifen unabhängig (Capability *und* CODEOWNERS), genau wie §7 es will.
