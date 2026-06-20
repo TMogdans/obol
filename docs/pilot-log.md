@@ -87,3 +87,38 @@ devloop-Seite — keine Theorie, sondern was im realen Repo passiert ist.
 - Ausgang: aufgelöst ohne Fehlmerge — `strict` hielt fail-closed (kein ungetesteter Merge), aber der `update-branch`-Anstoß war manuell nötig.
 - Beleg: PR #14 (behind → `update-branch` → Merge-Commit `66eca09`), PR #15 (mergte zuerst, rückte main vor)
 - Lehre: Bei `strict` + paralleler Auto-Merge ist ein `update-branch`-Zyklus für den nachrangigen PR der Normalfall — die Serialisierung ist gewollt (kein Merge auf veraltetem Stand), aber Auto-Merge aktualisiert eine behind-Branch nicht automatisch; das braucht das Repo-Setting „automatically update" oder einen expliziten Trigger. *Nebenbefund (Tooling, nicht Käfig):* meine Status-Abfragen liefen anfangs unauthentifiziert ins 60/h-Rate-Limit — leere Antworten sahen wie „CI nie gelaufen" aus und führten zu einer Fehldiagnose; GitHub-Status daher immer authentifiziert abfragen.
+
+## 2026-06-20 — Spec-Artefakt kollidiert mit geschütztem Satz (Geburt des Spec-PR-first-Flows)
+- Auslöser: `devloop-precondition-check` (protected-set) beim ersten echten Feature-Lauf (`account-detail`, T2) mit aktivem Anker.
+- Was passierte: Die `specify`-Station legt ihr Pflicht-Artefakt unter `.specify/specs/<feature>/spec.md` ab — `.specify/**` steht im geschützten Satz. Der atomare Tripel-PR (Spec+Tests+Code) berührte damit zwangsläufig den geschützten Satz → `protected-set-touched` → **jedes** Feature bräuchte einen Admin-Override allein fürs Mittragen seiner Spec. Verschärft durch den repo-weiten Trace-Gate: Spec-only-PR → Trace rot auf main; Spec+Tests-ohne-Code → vitest rot (red-before-green). Nur das vollständige Tripel hält main grün — und das berührt immer `.specify/**`.
+- Ausgang: Lücke (Architektur-Klasse) sichtbar → an devloop gemeldet, gelöst in **v0.2.0**: Spec-PR-zuerst mit `.skip`'ten Tests (main bleibt grün — Trace zählt Skips, vitest rötet sie nicht) + `verify-unskip`-Naht (implement entfernt nur `.skip`). Obol-seitig Carve-out `.specify/**` → `.specify/constitution.md` bei erhaltenem CODEOWNERS-Review (PR #18).
+- Beleg: PR #17 (verworfen, atomares Tripel), PR #18 (v0.2.1-Migration), devloop v0.2.0 `b2120cd`
+- Lehre: Ein Pflicht-Artefakt der Kette darf nicht im geschützten Satz liegen, sonst kollabiert der gestufte Flow auf „alles Admin-Override". Die Stations-Trennung (Anti-Kollusion) ist richtig — aber sie braucht einen Artefakt-Handoff; den löst der Spec-PR-first-Flow über `main` und macht nebenbei den Spec-Review zu einem echten Anker-b-Review (vorher fehlte dem Stopp ein reviewbarer HEAD).
+
+## 2026-06-20 — v0.2.x-Migration: CI-Template ohne Install, `tee` maskiert Exit, `init` überschreibt still
+- Auslöser: `/devloop:init` + das v0.2.0/0.2.1-CI-Template beim Versions-Upgrade.
+- Was passierte: (1) Das Template rief `node node_modules/devloop/dist/cli/*` **ohne Install-Schritt** → `Cannot find module verify-review.js` auf CI; der vorangehende `tier`-Schritt maskierte seinen Exit per `| tee tier.json`, sodass der Fehler erst im zweiten Schritt sichtbar wurde. (2) `init` ist idempotent und ließ die alte Workflow-Datei still stehen („skipped") und legte eine Default-`.devloop/tier-map.json` an, die von Obols `tools/tier-map.json` abwich (`tools/**`→T1 statt T3 = Gate-Regression).
+- Ausgang: gefangen (CI rot) → Hand-Fix in Obol + Rückmeldung → **v0.2.1** (Install + `set -o pipefail`), **v0.2.2-Template** (Refspec, `submitted` aus den `pull_request`-Types); `init` upgrade-sicher (kein Tier-Map-Shadowing, lautes „NOT updated", `--force`).
+- Beleg: PR #18/#20, devloop v0.2.1–v0.2.2
+- Lehre: Versions-Migration ≠ „eine Datei dazu" — ein generisches Template muss Install + Fehlersichtbarkeit (`pipefail`) mitbringen, und ein idempotenter Generator darf beim Upgrade nicht still die sicherheitskritische Verdrahtung auslassen. Der Bump (`#vX`) ist nötig, weil CI die CLIs aus der gepinnten devDependency lädt.
+
+## 2026-06-20 — precondition-check crasht beim Spec-Review-Approve (`pull_request_review`)
+- Auslöser: das CI-Template auf dem `pull_request_review`-Event — also genau im Moment der Freigabe.
+- Was passierte: Auf `pull_request_review` ist `github.base_ref` **leer** (GitHub setzt es nur bei `pull_request`) und `actions/checkout` checkt die Base statt des PR-HEAD aus → `git diff origin/...HEAD` → `fatal: ambiguous argument` (exit 128). Der approval-getriggerte Re-Run wurde nie grün → der erste harte Mensch-Stopp war faktisch nicht passierbar.
+- Ausgang: gefangen → Hand-Fix (#20: `checkout ref=head.sha`, `base.ref` statt `base_ref`, explizites base-`fetch`) → **v0.2.2** ins Template gezogen.
+- Beleg: PR #20, devloop v0.2.2
+- Lehre: Ein Gate, das auf `pull_request_review` re-evaluiert, muss die Event-Asymmetrie kennen — sonst bricht es genau in dem Augenblick, dessen Freigabe es prüfen soll.
+
+## 2026-06-20 — verify-unskip blockt den Spec-PR (neue all-`.skip`-Datei)
+- Auslöser: `verify-unskip` (Test↔Code-Naht) auf dem Spec-PR.
+- Was passierte: `verify-unskip` läuft auf **jedem** PR; auf dem Spec-PR ist die `.skip`'te Testdatei neu (`oldContent=""`) → die „nur `.skip` entfernt"-Regel scheiterte (`isUnskipOnly("", <Datei>)` = false) → der Spec-PR (erster PR des Flows) konnte nie grün werden. Tier ok, `verify-review` `{ok:true}`, nur `verify-unskip` blockte.
+- Ausgang: gefangen → **Unified-Rule** in **v0.2.3**: neue Datei erlaubt, wenn **alle** Tests `.skip`'d (Authoring im Spec-PR); bestehende Datei nur `.skip`-Entfernung (implement). Obol-Bump #21; lokal verifiziert `isAllowedTestEdit("", <Datei>)=true`.
+- Beleg: PR #19 (blockiert), #21 (v0.2.3-Bump), devloop v0.2.3 `d9cc03e`
+- Lehre: Eine Naht, die in zwei PR-Rollen wirkt (Authoring vs. Aktivieren), braucht eine rollenbewusste Regel — sonst blockt die Schutznaht genau den legitimen Authoring-Schritt, für den sie eigentlich Raum lassen muss.
+
+## 2026-06-20 — Gleichnamiger Check auf zwei Events hinterlässt veralteten FAILURE (Merge blockiert)
+- Auslöser: `devloop-precondition-check` triggert auf `pull_request` **und** `pull_request_review` → zwei Check-Runs gleichen Namens auf demselben Commit.
+- Was passierte: Beim Impl-PR #22 blieb der Vor-Approve-`pull_request`-Lauf als FAILURE am Commit kleben, während der Post-Approve-`pull_request_review`-Lauf SUCCESS war. GitHub blockte den Merge (`mergeStateStatus: BLOCKED`), obwohl der maßgebliche Lauf grün war. Bei #19 trat es nicht auf — dort erzeugte „Update branch" einen neuen Commit (frische Checks).
+- Ausgang: gelöst durch Re-Run des veralteten FAILURE-Laufs (mit jetzt vorhandenem Approve → grün) → Auto-Merge feuerte. An devloop gemeldet.
+- Beleg: PR #22 (gemergt `2d2c8e0`), Re-Run von CI-Run 27881553727
+- Lehre: Ein gleichnamiger Required-Check auf mehreren Events braucht eine `concurrency`-Gruppe pro PR (alten Lauf canceln) oder Re-Evaluation nur auf `pull_request_review`/`synchronize` — sonst blockt ein fachlich überholter, veralteter Lauf den Merge. **Dieser ganze Lauf** (`account-detail`) ist zugleich der erste End-to-End-Beweis des v0.2.3-Spec-PR-first-Flows: specify → spec-to-tests(.skip) → Spec-PR/Review → implement → Gates → critic(accepted) → Impl-PR/Review → Merge, beide Mensch-Tore über echte CODEOWNER-Reviews.
