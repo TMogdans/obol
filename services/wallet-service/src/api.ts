@@ -45,6 +45,15 @@ export class AccountExisted extends Schema.TaggedClass<AccountExisted>()(
 ) {}
 
 /**
+ * Success body for `GET /accounts/:id` (account detail). Exactly the stored
+ * account fields `{ id, ownerId, currency, createdAt }` — no embedded balance
+ * (that is the separate `balance-query` surface). Defined LOCALLY here in
+ * wallet-service (REQ-ACCD-07): the response type never leaves the service into
+ * `packages/contracts`, so the change stays Tier T2.
+ */
+const AccountDetail = Schema.Struct(AccountFields);
+
+/**
  * Request body for `POST /accounts`. `ownerId` must be a non-empty (trimmed)
  * string; an empty/whitespace value fails decoding and the framework returns a
  * structured 400 before the handler runs (REQ-ACC-04). `currency` is NOT part
@@ -64,10 +73,13 @@ const CreateAccountHeaders = Schema.Struct({
 });
 
 /**
- * Path parameters for `/accounts/:id/balance`. The `id` segment is decoded into
- * this struct and handed to the handler as `path.id`.
+ * Path parameters for the `/accounts/:id` family (`:id/balance` and the bare
+ * `:id` detail read). The `id` segment is decoded into this struct and handed to
+ * the handler as `path.id`. It is a plain `Schema.String` — `id` is an opaque
+ * token, not format-checked (REQ-ACCD-08), so any punctuated value reaches the
+ * handler and resolves to the domain 404 rather than a decode-time 400.
  */
-const BalancePath = Schema.Struct({
+const AccountIdPath = Schema.Struct({
   id: Schema.String,
 });
 
@@ -108,8 +120,14 @@ export class WalletApi extends HttpApi.make("wallet").add(
     )
     .add(
       HttpApiEndpoint.get("balance", "/accounts/:id/balance")
-        .setPath(BalancePath)
+        .setPath(AccountIdPath)
         .addSuccess(Balance)
+        .addError(AccountNotFound, { status: 404 }),
+    )
+    .add(
+      HttpApiEndpoint.get("getAccount", "/accounts/:id")
+        .setPath(AccountIdPath)
+        .addSuccess(AccountDetail)
         .addError(AccountNotFound, { status: 404 }),
     )
     .add(HttpApiEndpoint.get("health", "/health").addSuccess(Health)),

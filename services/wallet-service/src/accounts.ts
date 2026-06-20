@@ -58,6 +58,15 @@ export class AccountRepo extends Effect.Service<AccountRepo>()("AccountRepo", {
   effect: Effect.gen(function* () {
     const sql = yield* SqlClient;
 
+    const findById = (
+      id: string,
+    ): Effect.Effect<Account | undefined, SqlError> =>
+      sql<AccountRow>`
+        SELECT id, owner_id, currency, created_at::text AS created_at
+        FROM account
+        WHERE id = ${id}
+      `.pipe(Effect.map((rows) => (rows[0] ? toAccount(rows[0]) : undefined)));
+
     const open = (
       ownerId: string,
       idempotencyKey: string,
@@ -92,6 +101,6 @@ export class AccountRepo extends Effect.Service<AccountRepo>()("AccountRepo", {
         return { account: toAccount(prior), created: false };
       });
 
-    return { open } as const;
+    return { open, findById } as const;
   }),
 }) {}

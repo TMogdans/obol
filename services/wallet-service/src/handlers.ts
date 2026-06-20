@@ -1,4 +1,4 @@
-import { HttpApiBuilder } from "@effect/platform";
+import { HttpApiBuilder, HttpServerResponse } from "@effect/platform";
 import { Effect } from "effect";
 import { AccountRepo } from "./accounts.js";
 import {
@@ -67,6 +67,34 @@ export const AccountsHandlersLive = HttpApiBuilder.group(
             }
             const balance = yield* repo.balanceFor(path.id).pipe(Effect.orDie);
             return { accountId: path.id, balance };
+          }),
+        )
+        .handle("getAccount", ({ path }) =>
+          Effect.gen(function* () {
+            // PK lookup via `findById` (WHERE id = …). `SqlError` is NOT a
+            // declared client error on this endpoint: a DB fault is an
+            // unexpected defect (→ 500), never a typed client error. We send it
+            // to the defect channel via `Effect.die`, carrying a 500
+            // `HttpServerResponse` so the body is a structured JSON the
+            // framework renders verbatim (its `_tag` is deliberately NOT
+            // `AccountNotFound` — a DB fault must not masquerade as a missing
+            // account). The only typed failure stays `AccountNotFound` (→ 404).
+            const account = yield* accounts
+              .findById(path.id)
+              .pipe(
+                Effect.catchAll(() =>
+                  Effect.die(
+                    HttpServerResponse.unsafeJson(
+                      { _tag: "InternalServerError" },
+                      { status: 500 },
+                    ),
+                  ),
+                ),
+              );
+            if (account === undefined) {
+              return yield* new AccountNotFound({ accountId: path.id });
+            }
+            return account;
           }),
         )
         .handle("health", () => Effect.succeed({ status: "ok" as const }));
