@@ -1,0 +1,43 @@
+# Auto-Merge — der VOLLZUG von §9 (Variante B, serverseitig).
+#
+# Schaltet GitHubs natives Auto-Merge für PRs des Agent-Bots scharf. Der Merge passiert dann
+# serverseitig durch GitHub, SOBALD alle Required Checks grün sind. Dieser Workflow entscheidet
+# NICHT, OB gemergt wird — das tut die Branch Protection.
+#
+# Warum das §9 ohne eigenes Tier-Wissen umsetzt: der Required-Check `devloop-precondition-check`
+# ist tier-gestuft und kapselt §9 bereits — er ist grün GENAU dann, wenn der PR nach §9 mergebar
+# ist (T0/T1 ohne Approval; T2/T3 nur mit menschlichem CODEOWNER-Approval auf HEAD; geschützter
+# Satz nie ohne Admin-Override). „Alle Required Checks grün" = „nach §9 mergebar". Also genügt es,
+# Auto-Merge scharfzuschalten und GitHub die Bedingung prüfen zu lassen.
+#
+# Serverseitig => umgeht den lokalen, tier-blinden PreToolUse-Merge-Hook (devloop-Befund
+# 2026-06-20): der Merge läuft mit GITHUB_TOKEN auf dem Runner, nicht über eine Agent-Shell.
+
+name: auto-merge
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, synchronize]
+  pull_request_review:
+    types: [submitted]
+
+# Least privilege: nur, was zum Scharfschalten + serverseitigen Merge nötig ist.
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  enable-auto-merge:
+    runs-on: ubuntu-latest
+    # NUR PRs des Agent-Bots (der Produzent). Menschen-PRs mergt der Mensch selbst — kein
+    # versehentliches Auto-Mergen fremder PRs. Drafts sind ausgenommen (Auto-Merge unzulässig).
+    if: >-
+      github.event.pull_request.user.login == 'sir-tobys-usefull-helper-agent[bot]'
+      && github.event.pull_request.draft == false
+    steps:
+      - name: Enable native auto-merge (squash)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        # Idempotent: ist Auto-Merge schon aktiv, ist der erneute Aufruf ein No-op-Fehler, den
+        # wir schlucken. GitHub merged erst, wenn ALLE Required Checks (inkl. precondition-check) grün sind.
+        run: gh pr merge "$PR" --auto --squash --repo "${{ github.repository }}" || true

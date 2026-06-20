@@ -44,6 +44,14 @@ dieses Tier (eine Wahrheit, keine zweite Ableitung) und gatet den Merge gestuft:
   gewollt, kein Schlupfloch.
 - **Features:** durch `/devloop:loop` schicken (specify → spec-to-tests → implement → critic).
 
+**Der Merge-Vollzug ist automatisiert** ([.github/workflows/auto-merge.yml](./.github/workflows/auto-merge.yml)):
+Der Workflow schaltet für **Bot-PRs** GitHubs natives Auto-Merge scharf; GitHub merged dann
+serverseitig, **sobald alle Required Checks grün sind**. Weil der `devloop-precondition-check`
+§9 kapselt (grün genau dann, wenn nach §9 mergebar), braucht der Auto-Merge **kein eigenes
+Tier-Wissen**: T0/T1 mergt sofort, T2/T3 erst nach menschlichem Approval, geschützter Satz nie
+ohne Admin-Override. Serverseitig heißt: unabhängig von der lokalen Agent-Session (umgeht den
+tier-blinden lokalen Merge-Hook). Menschen-PRs mergt der Mensch selbst.
+
 ## Pilot-Log
 
 Stolpersteine (Gates, Rechte-Grenzen, sichtbar gewordene Lücken) in
