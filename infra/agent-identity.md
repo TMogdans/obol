@@ -85,20 +85,27 @@ Record it. App ID + Installation ID + private key are the three inputs the token
 
 Two zero-dependency files live in `~/.config/obol-agent/`. They keep the bot's auth completely separate
 from your personal git/`gh` setup: your SSH `origin` remote and your personal `gh` login are never
-touched. The bot pushes over a one-off HTTPS URL with a short-lived token, and opens PRs with `GH_TOKEN`
-set only for that single command.
+touched. The bot pushes over a one-off HTTPS URL with a short-lived token, and opens PRs over the GitHub
+REST API with `curl`. It deliberately does **not** use `gh` for its own operations (see the sandbox note
+below), so your interactive `gh auth` stays untouched.
 
 ### `mint-token.mjs` — the token minter
 
 Mints a short-lived (~1 h) installation access token. Zero dependencies: it builds and signs an RS256 JWT
-with Node's built-in `crypto`, exchanges it for an installation token via `fetch`, and prints **only the
-token** to stdout (diagnostics go to stderr) so it can be consumed by other scripts. The token never
-passes through argv or shell history.
+with Node's built-in `crypto`, exchanges it for an installation token via **`curl`** (not node's `fetch`,
+see the sandbox note below), and prints **only the token** to stdout (diagnostics go to stderr) so it can
+be consumed by other scripts. Neither the JWT nor the token passes through argv or shell history.
 
 ```javascript
 #!/usr/bin/env node
 // Mint a short-lived GitHub App installation access token (valid ~1h).
-// Zero dependencies: Node's built-in crypto (RS256 JWT) + fetch.
+// Zero dependencies: Node's built-in crypto (RS256 JWT) signs locally, and the
+// token exchange goes over `curl`, NOT node's fetch.
+//
+// Why curl: under the Claude Code Bash sandbox, node's fetch reaches for the
+// macOS system truststore (trustd), which Seatbelt blocks -> TLS failure. curl
+// ships its own CA bundle and works sandboxed. The JWT is passed to curl via a
+// stdin config (--config -), so it never appears in argv / `ps`.
 //
 // Prints ONLY the token to stdout, so it can be consumed by other scripts:
 //   TOKEN="$(node mint-token.mjs)"
@@ -111,6 +118,7 @@ passes through argv or shell history.
 
 import { readFileSync } from "node:fs";
 import { createSign } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { homedir } from "node:os";
 
 const APP_ID = process.env.OBOL_AGENT_APP_ID ?? "4084385";
@@ -142,26 +150,44 @@ async function main() {
   }
 
   const jwt = makeJwt(APP_ID, pem);
-  const res = await fetch(
-    `https://api.github.com/app/installations/${INSTALLATION_ID}/access_tokens`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${jwt}`,
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-        "User-Agent": "obol-agent-token-minter",
-      },
-    },
-  );
+  // curl reads the Authorization header (with the JWT) from a stdin config, so
+  // the JWT stays out of argv. The URL is not secret and stays a positional arg.
+  const curlConfig = [
+    `request = "POST"`,
+    `header = "Authorization: Bearer ${jwt}"`,
+    `header = "Accept: application/vnd.github+json"`,
+    `header = "X-GitHub-Api-Version: 2022-11-28"`,
+    `header = "User-Agent: obol-agent-token-minter"`,
+  ].join("\n");
 
-  if (!res.ok) {
-    const body = await res.text();
-    console.error(`[mint-token] token request failed: ${res.status} ${res.statusText}\n${body}`);
+  let out;
+  try {
+    out = execFileSync(
+      "curl",
+      [
+        "-sS",
+        "--config",
+        "-",
+        `https://api.github.com/app/installations/${INSTALLATION_ID}/access_tokens`,
+      ],
+      { input: curlConfig, encoding: "utf8" },
+    );
+  } catch (e) {
+    console.error(`[mint-token] curl failed: ${e.stderr || e.message}`);
     process.exit(1);
   }
 
-  const data = await res.json();
+  let data;
+  try {
+    data = JSON.parse(out);
+  } catch {
+    console.error(`[mint-token] unexpected response:\n${out}`);
+    process.exit(1);
+  }
+  if (!data.token) {
+    console.error(`[mint-token] token request failed:\n${out}`);
+    process.exit(1);
+  }
   console.error(`[mint-token] ok — token expires at ${data.expires_at}`);
   process.stdout.write(data.token);
 }
@@ -191,7 +217,7 @@ rewrites the repo's git config or your personal identity. Tokens are cached in t
 #   source ~/.config/obol-agent/env.sh
 #   agwhoami            # sanity check: token + identity, read-only
 #   agpush [branch]     # push current HEAD as the bot (HTTPS + short-lived token)
-#   agpr  <gh pr args>  # open a PR as the bot
+#   agpr --base main --head <branch> --title "…" --body "…"   # open a PR as the bot
 #
 # The bot is the PRODUCER. You (a CODEOWNER) review and merge. Different
 # principals -> no self-approval deadlock.
@@ -230,18 +256,58 @@ agpush() {
       push "https://github.com/$OBOL_AGENT_REPO.git" "HEAD:refs/heads/$branch"
 }
 
-# Open a PR as the bot.
+# Network goes over curl/git, NOT `gh`: under the Claude Code Bash sandbox `gh`
+# (a Go binary) fails TLS against the system truststore, and a `GH_TOKEN=… gh`
+# prefix would not match a `gh *` excludedCommands rule anyway. curl ships its
+# own CA bundle and works sandboxed. The token rides in via a stdin config
+# (--config -), so it never appears in argv / `ps`.
+_obol_curl_config() {
+  cat <<EOF
+header = "Authorization: token ${OBOL_AGENT_TOKEN}"
+header = "Accept: application/vnd.github+json"
+header = "X-GitHub-Api-Version: 2022-11-28"
+header = "User-Agent: obol-agent"
+EOF
+}
+
+# Open a PR as the bot. Flags mirror the gh subset we use:
+#   agpr --base main --head <branch> --title "…" --body "…"
 agpr() {
+  local title="" body="" base="main" head=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --title) title="$2"; shift 2;;
+      --body)  body="$2";  shift 2;;
+      --base)  base="$2";  shift 2;;
+      --head)  head="$2";  shift 2;;
+      *) echo "agpr: unbekanntes Argument: $1" >&2; return 2;;
+    esac
+  done
+  if [ -z "$title" ] || [ -z "$head" ]; then
+    echo "agpr: --title und --head sind erforderlich (--base default main)" >&2
+    return 2
+  fi
   _obol_agent_token || return 1
-  GH_TOKEN="$OBOL_AGENT_TOKEN" gh pr create --repo "$OBOL_AGENT_REPO" "$@"
+  # Body JSON via node (guaranteed present; no jq dependency). title/body are not
+  # secret, so they go through a temp file; the token stays in the stdin config.
+  local tmp; tmp="$(mktemp)"
+  node -e 'const [t,b,h,ba]=process.argv.slice(1);process.stdout.write(JSON.stringify({title:t,body:b,head:h,base:ba}))' \
+    "$title" "$body" "$head" "$base" > "$tmp"
+  _obol_curl_config | curl -sS -X POST \
+    "https://api.github.com/repos/$OBOL_AGENT_REPO/pulls" \
+    --config - --data "@$tmp"
+  local rc=$?
+  rm -f "$tmp"
+  return $rc
 }
 
 # Read-only sanity check.
 agwhoami() {
   _obol_agent_token || return 1
   echo "commit author : $GIT_AUTHOR_NAME <$GIT_AUTHOR_EMAIL>"
-  GH_TOKEN="$OBOL_AGENT_TOKEN" gh api /installation/repositories \
-    --jq '.repositories[].full_name' | sed 's/^/token scope   : /'
+  _obol_curl_config | curl -sS --config - \
+    "https://api.github.com/installation/repositories" \
+  | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{JSON.parse(s).repositories.forEach(r=>console.log("token scope   : "+r.full_name))}catch(e){console.error("agwhoami: "+s)}})'
 }
 ```
 
@@ -249,8 +315,16 @@ Key properties:
 
 - **`origin` stays SSH and personal.** `agpush` pushes to a literal `https://github.com/<repo>.git` URL
   with an inline credential helper; it never reads or writes the `origin` remote.
-- **`gh` stays your login.** `agpr`/`agwhoami` set `GH_TOKEN` only for that one invocation, so your
-  interactive `gh auth` is untouched.
+- **No `gh` for bot operations.** `agpr` and `agwhoami` talk to the GitHub REST API over `curl`, and
+  `mint-token.mjs` exchanges the JWT over `curl` too. The bot never invokes `gh`, so your interactive
+  `gh auth` is untouched. (The human review/merge step further down still uses `gh` — that runs as you,
+  outside any sandbox.)
+- **Sandbox-ready.** Under the Claude Code Bash sandbox, `gh` (a Go binary) and node's `fetch` fail TLS
+  against the macOS system truststore, which Seatbelt blocks; `curl` and `git` carry their own CA bundle
+  and work sandboxed. That is why every network call here is `curl`/`git`, never `gh`/`fetch`. Prerequisites
+  for a sandboxed run: allow `api.github.com` and `github.com` in `network.allowedDomains`, and add the PEM
+  path to `filesystem.allowRead` (the key lives outside the working directory). Both the JWT and the token
+  reach `curl` through a stdin config (`--config -`), never argv.
 - **The bot is the committer.** Commits made under this shell carry the bot as author and committer, but
   the repo's `.git/config` is never modified.
 
@@ -262,11 +336,12 @@ source ~/.config/obol-agent/env.sh
 agwhoami            # read-only: prints the bot's commit identity + the repos the token can see
 # ... agent does its work, commits on a feature branch ...
 agpush my-feature   # push HEAD to refs/heads/my-feature as the bot
-agpr --fill --base main --head my-feature   # open the PR as the bot
+agpr --base main --head my-feature --title "…" --body "…"   # open the PR as the bot
 ```
 
 `agwhoami` is the cheap "is everything wired?" check. `agpush` defaults to the current branch name if you
-omit the argument. `agpr` forwards all arguments straight to `gh pr create`.
+omit the argument. `agpr` builds the PR over the REST API and takes `--base`, `--head`, `--title`, `--body`
+(no arbitrary `gh` flags; `--base` defaults to `main`).
 
 ## Verify
 
@@ -279,7 +354,7 @@ The throwaway-PR test proves the deadlock is actually resolved.
    git checkout -b chore/identity-smoke-test
    git commit --allow-empty -m "chore: identity smoke test"
    agpush chore/identity-smoke-test
-   agpr --fill --base main --head chore/identity-smoke-test
+   agpr --base main --head chore/identity-smoke-test --title "chore: identity smoke test" --body "throwaway"
    ```
 
 2. Check authorship and review state (using **your personal** `gh`, not the bot's):
