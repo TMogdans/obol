@@ -6,3 +6,6 @@ dist-test/
 coverage/
 reports/
 .stryker-tmp/
+
+# Claude Code: lokale, persönliche Konfiguration (nicht teilen)
+.claude/settings.local.json
