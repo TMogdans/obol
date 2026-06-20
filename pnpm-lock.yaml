@@ -30,8 +30,8 @@ importers:
         specifier: 17.4.3
         version: 17.4.3
       devloop:
-        specifier: github:mayflower/devloop#v0.2.1
-        version: https://codeload.github.com/mayflower/devloop/tar.gz/e0256bf0ef2b4a965e20753060737e28aca46de7
+        specifier: github:mayflower/devloop#v0.2.3
+        version: https://codeload.github.com/mayflower/devloop/tar.gz/d9cc03ef53bd1071ee6822c12805510e3d00e47f
       effect:
         specifier: ^3
         version: 3.21.3
@@ -1654,9 +1654,9 @@ packages:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
     engines: {node: '>=8'}
 
-  devloop@https://codeload.github.com/mayflower/devloop/tar.gz/e0256bf0ef2b4a965e20753060737e28aca46de7:
-    resolution: {gitHosted: true, integrity: sha512-X0PcD4WnNH+kcUh93q5pGXwZjQ0s5giAy+m5vdS9pGJTiZ9gCGUBceQznhv3iVvg3i+Lad+WZhtUSUUHfChXLQ==, tarball: https://codeload.github.com/mayflower/devloop/tar.gz/e0256bf0ef2b4a965e20753060737e28aca46de7}
-    version: 0.2.1
+  devloop@https://codeload.github.com/mayflower/devloop/tar.gz/d9cc03ef53bd1071ee6822c12805510e3d00e47f:
+    resolution: {gitHosted: true, integrity: sha512-UUbkaAsV/L45VoJ7I92twnN5CWNvX4ZwV+AZgwCL1DUM23IUnqLK0N5bbPl7HxPdHOfhXs9Nc3z2xcwA5xrfTQ==, tarball: https://codeload.github.com/mayflower/devloop/tar.gz/d9cc03ef53bd1071ee6822c12805510e3d00e47f}
+    version: 0.2.3
 
   diff-match-patch@1.0.5:
     resolution: {integrity: sha512-IayShXAgj/QMXgB0IWmKx+rOPuGMhqm5w6jvFxmVenXKIzRqTAAsbBPT3kWQeGANj3jGgvcvv4yK6SxqYmikgw==}
@@ -4236,7 +4236,7 @@ snapshots:
 
   detect-libc@2.1.2: {}
 
-  devloop@https://codeload.github.com/mayflower/devloop/tar.gz/e0256bf0ef2b4a965e20753060737e28aca46de7: {}
+  devloop@https://codeload.github.com/mayflower/devloop/tar.gz/d9cc03ef53bd1071ee6822c12805510e3d00e47f: {}
 
   diff-match-patch@1.0.5: {}
 
