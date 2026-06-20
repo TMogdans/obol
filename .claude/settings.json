@@ -15,23 +15,14 @@
       "Bash(curl -sS --max-time 15 -o /dev/null -w \"%{http_code}\\\\n\" https://github.com)",
       "Bash(curl -sS --max-time 15 -o /dev/null -w \"%{http_code}\\\\n\" https://registry.npmjs.org)"
     ],
-    "deny": [
-      "Read(~/.ssh/**)",
-      "Read(~/.aws/**)"
-    ]
+    "deny": ["Read(~/.ssh/**)", "Read(~/.aws/**)"]
   },
   "sandbox": {
     "enabled": true,
     "allowUnsandboxedCommands": true,
     "filesystem": {
-      "allowWrite": [
-        "~/Library/pnpm",
-        "~/.cache"
-      ],
-      "denyRead": [
-        "~/.ssh",
-        "~/.aws"
-      ]
+      "allowWrite": ["~/Library/pnpm", "~/.cache"],
+      "denyRead": ["~/.ssh", "~/.aws"]
     },
     "network": {
       "allowedDomains": [
@@ -42,8 +33,6 @@
         "objects.githubusercontent.com"
       ]
     },
-    "excludedCommands": [
-      "gh *"
-    ]
+    "excludedCommands": ["gh *"]
   }
 }
