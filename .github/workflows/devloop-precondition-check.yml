@@ -7,6 +7,11 @@
 # This file MUST contain the string "devloop-precondition-check" so checkGuardians() can
 # verify the binding anchor is wired in the target repo (it is itself a guardian).
 #
+# Event handling (critical): this runs on BOTH pull_request and pull_request_review (the latter
+# so the human Approve re-triggers the check). On pull_request_review the workflow-level
+# `github.base_ref` is EMPTY and checkout would default to the base — so we always check out the
+# PR HEAD (pull_request.head.sha) and read the base from pull_request.base.ref.
+#
 # Also enforce, OUTSIDE this workflow, via Branch Protection (the t3-merge stop):
 #   - Require a review from CODEOWNERS  - Dismiss stale approvals on push
 #   - Do not allow the agent identity to approve/merge  - Require this check to pass
@@ -14,19 +19,37 @@
 name: devloop-precondition-check
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review, submitted]
+    types: [opened, synchronize, reopened, ready_for_review]
   pull_request_review:
     types: [submitted, dismissed]
+
+# Hygiene: collapse redundant runs per PR (this check fires on both events above).
+concurrency:
+  group: devloop-precondition-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+# NOTE: this check PASSES while a PR simply awaits review (no approval yet) — the authoritative
+# "must be approved" block is Branch Protection's required CODEOWNER review (see below). It only
+# FAILS on a real problem: gate-tamper, or an approval that is present but invalid (agent/author
+# self-approve, or stale). That avoids a transient FAILURE lingering across the two trigger
+# events and blocking the merge after a later approve.
 
 jobs:
   devloop-precondition-check:
     runs-on: ubuntu-latest
+    env:
+      # base.ref / head.sha are present on BOTH events; github.base_ref is NOT (empty on review).
+      BASE: ${{ github.event.pull_request.base.ref }}
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha }} # the PR HEAD, on both events
           fetch-depth: 0
-          # Auf pull_request_review checkt actions/checkout sonst die Base statt des PR-HEAD aus.
-          ref: ${{ github.event.pull_request.head.sha }}
+
+      # Make origin/$BASE exist for the diffs (checkout fetched HEAD, not necessarily the base).
+      - name: Fetch base
+        run: git fetch origin "+refs/heads/$BASE:refs/remotes/origin/$BASE" || true
+
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -43,14 +66,17 @@ jobs:
       - name: Compute the AUTHORITATIVE tier from the diff (not agent-declared, §9/§10)
         run: |
           set -o pipefail
-          # github.base_ref ist auf pull_request_review leer -> Base aus dem PR-Payload nehmen.
-          BASE="${{ github.event.pull_request.base.ref }}"
-          git fetch origin "$BASE" --depth=50
-          DIFF=$(git diff --name-only "origin/$BASE...HEAD" | jq -R . | jq -s .)
+          DIFF=$(git diff --name-only "origin/$BASE"...HEAD | jq -R . | jq -s .)
           # repo mode: devloop locates the repo's tier-map itself (.devloop/ -> tools/ -> root)
           jq -n --argjson touched "$DIFF" '{touched:$touched, repo:"."}' \
             | node node_modules/devloop/dist/cli/derive-tier.js > tier.json
           cat tier.json
+
+      - name: Drift guard — tier-map T2/T3 paths must be covered by CODEOWNERS (§9)
+        run: |
+          # The T2/T3 merge gate is branch protection's required CODEOWNER review. If a T2/T3
+          # tier path has no CODEOWNERS coverage, such a PR could auto-merge unreviewed.
+          node node_modules/devloop/dist/cli/check-codeowners.js .
 
       - name: Verify HUMAN approval on HEAD + no gate-tamper (fail-closed)
         env:
@@ -63,21 +89,21 @@ jobs:
           # Reviews from GitHub (the authoritative, unforgeable channel).
           REVIEWS=$(gh api "repos/${{ github.repository }}/pulls/$PR/reviews" \
             --jq '[.[] | {user: .user.login, state: .state, commit_id: .commit_id}]')
-          DIFF=$(git diff --name-only "origin/${{ github.event.pull_request.base.ref }}...HEAD" | jq -R . | jq -s .)
+          DIFF=$(git diff --name-only "origin/$BASE"...HEAD | jq -R . | jq -s .)
           # botLogins / humanReviewers (CODEOWNERS) come from .devloop config in the repo.
           jq -n \
             --argjson reviews "$REVIEWS" \
             --arg prAuthor "$AUTHOR" \
             --arg headSha "$HEAD_SHA" \
+            --arg tier "$(jq -r .tier tier.json)" \
             --argjson bots "$(cat .devloop/bot-logins.json)" \
             --argjson diff "$DIFF" \
             --argjson protected "$(cat .devloop/protected-globs.json)" \
-            '{reviews:$reviews, prAuthor:$prAuthor, headSha:$headSha, botLogins:$bots, diffPaths:$diff, protectedGlobs:$protected}' \
+            '{reviews:$reviews, prAuthor:$prAuthor, headSha:$headSha, tier:$tier, botLogins:$bots, diffPaths:$diff, protectedGlobs:$protected}' \
             | node node_modules/devloop/dist/cli/verify-review.js
 
       - name: Verify implement only un-skipped tests (test<->code seam, §11 #3)
         run: |
           # On the implement PR, every changed *.test.* file may differ from base ONLY by
           # removed `.skip`. Authoring/editing tests in implement is forbidden (fail-closed).
-          git fetch origin "${{ github.event.pull_request.base.ref }}" --depth=50 || true
-          node node_modules/devloop/dist/cli/verify-unskip.js . "origin/${{ github.event.pull_request.base.ref }}"
+          node node_modules/devloop/dist/cli/verify-unskip.js . "origin/$BASE"
