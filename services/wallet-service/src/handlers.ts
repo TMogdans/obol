@@ -97,6 +97,7 @@ export const AccountsHandlersLive = HttpApiBuilder.group(
             return account;
           }),
         )
+        // Unauthenticated liveness probe — always succeeds, touches no state.
         .handle("health", () => Effect.succeed({ status: "ok" as const }));
     }),
 );
