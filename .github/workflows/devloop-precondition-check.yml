@@ -103,7 +103,13 @@ jobs:
             | node node_modules/devloop/dist/cli/verify-review.js
 
       - name: Verify implement only un-skipped tests (test<->code seam, §11 #3)
+        env:
+          # The PR head branch. verify-unskip no-op-passes on devloop/spec/* (spec-to-tests is the
+          # legitimate test author on the Spec-PR; the seam constrains only the Impl-PR). Present on
+          # BOTH pull_request and pull_request_review events. WITHOUT this third arg the spec-PR
+          # exemption (isSpecBranch) is dead and a legitimate Spec-PR test edit is falsely flagged.
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           # On the implement PR, every changed *.test.* file may differ from base ONLY by
           # removed `.skip`. Authoring/editing tests in implement is forbidden (fail-closed).
-          node node_modules/devloop/dist/cli/verify-unskip.js . "origin/$BASE"
+          node node_modules/devloop/dist/cli/verify-unskip.js . "origin/$BASE" "$HEAD_REF"
