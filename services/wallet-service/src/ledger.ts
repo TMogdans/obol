@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { SqlClient } from "@effect/sql/SqlClient";
+import * as PgClient from "@effect/sql-pg/PgClient";
 import type { SqlError } from "@effect/sql/SqlError";
 import { Effect } from "effect";
+import { enqueueRecorded } from "./outbox.js";
 
 /**
  * DB-backed repository for appending to the append-only `ledger_entry` table.
@@ -31,25 +32,56 @@ import { Effect } from "effect";
  */
 export class LedgerRepo extends Effect.Service<LedgerRepo>()("LedgerRepo", {
   effect: Effect.gen(function* () {
-    const sql = yield* SqlClient;
+    // Use the PgClient (not the generic SqlClient) so the outbox INSERT can
+    // bind the wire payload as a jsonb value via `sql.json(...)`. DbLive
+    // provides PgClient.PgClient alongside SqlClient.
+    const sql = yield* PgClient.PgClient;
+
+    /**
+     * A single bigint amount-as-text + created_at-as-text returned by the
+     * append INSERT, so the outbox event carries the entry's stored signed
+     * amount and its recording timestamp (REQ-EVT-01).
+     */
+    interface AppendedRow {
+      readonly amount: string;
+      readonly created_at: string;
+    }
 
     const appendTopup = (
       accountId: string,
       amount: number,
     ): Effect.Effect<void, SqlError> =>
-      Effect.gen(function* () {
-        const id = yield* Effect.sync(() => `led_${randomUUID()}`);
-        const idempotencyKey = yield* Effect.sync(
-          () => `topup_${randomUUID()}`,
-        );
+      sql.withTransaction(
+        Effect.gen(function* () {
+          const id = yield* Effect.sync(() => `led_${randomUUID()}`);
+          const idempotencyKey = yield* Effect.sync(
+            () => `topup_${randomUUID()}`,
+          );
 
-        // Exactly one INSERT; `type` is server-set to 'topup' here, never taken
-        // from the request surface.
-        yield* sql`
-          INSERT INTO ledger_entry (id, account_id, amount, type, idempotency_key)
-          VALUES (${id}, ${accountId}, ${amount}, 'topup', ${idempotencyKey})
-        `;
-      });
+          // Exactly one INSERT into ledger_entry; `type` is server-set to
+          // 'topup' here, never taken from the request surface (REQ-EVT-06:
+          // still one append per request, no UPDATE/DELETE).
+          const rows = yield* sql<AppendedRow>`
+            INSERT INTO ledger_entry (id, account_id, amount, type, idempotency_key)
+            VALUES (${id}, ${accountId}, ${amount}, 'topup', ${idempotencyKey})
+            RETURNING amount::text AS amount, created_at::text AS created_at
+          `;
+          const row = rows[0];
+
+          // Queue the LedgerEntryRecorded event in the SAME transaction
+          // (REQ-EVT-04): the stored SIGNED amount (+amount for a topup) and
+          // the recording timestamp. If this INSERT fails, the whole
+          // transaction — entry included — rolls back, so there is never an
+          // entry without its event.
+          yield* enqueueRecorded(
+            sql,
+            id,
+            accountId,
+            Number(row?.amount),
+            row?.created_at ?? "",
+          );
+        }),
+      );
 
     /**
      * Mirror of {@link appendTopup} for the debit (spend) path. Performs exactly
@@ -71,20 +103,35 @@ export class LedgerRepo extends Effect.Service<LedgerRepo>()("LedgerRepo", {
       accountId: string,
       amount: number,
     ): Effect.Effect<void, SqlError> =>
-      Effect.gen(function* () {
-        const id = yield* Effect.sync(() => `led_${randomUUID()}`);
-        const idempotencyKey = yield* Effect.sync(
-          () => `spend_${randomUUID()}`,
-        );
+      sql.withTransaction(
+        Effect.gen(function* () {
+          const id = yield* Effect.sync(() => `led_${randomUUID()}`);
+          const idempotencyKey = yield* Effect.sync(
+            () => `spend_${randomUUID()}`,
+          );
 
-        // Exactly one INSERT; `type` is server-set to 'spend' and the stored
-        // amount is the server-negated quantity (-amount), never taken from the
-        // request surface.
-        yield* sql`
-          INSERT INTO ledger_entry (id, account_id, amount, type, idempotency_key)
-          VALUES (${id}, ${accountId}, ${-amount}, 'spend', ${idempotencyKey})
-        `;
-      });
+          // Exactly one INSERT; `type` is server-set to 'spend' and the stored
+          // amount is the server-negated quantity (-amount), never taken from
+          // the request surface.
+          const rows = yield* sql<AppendedRow>`
+            INSERT INTO ledger_entry (id, account_id, amount, type, idempotency_key)
+            VALUES (${id}, ${accountId}, ${-amount}, 'spend', ${idempotencyKey})
+            RETURNING amount::text AS amount, created_at::text AS created_at
+          `;
+          const row = rows[0];
+
+          // Queue the LedgerEntryRecorded event in the SAME transaction
+          // (REQ-EVT-04) carrying the stored NEGATIVE amount (-amount), so a
+          // consumer summing events reconstructs the same balance.
+          yield* enqueueRecorded(
+            sql,
+            id,
+            accountId,
+            Number(row?.amount),
+            row?.created_at ?? "",
+          );
+        }),
+      );
 
     return { appendTopup, appendSpend } as const;
   }),
