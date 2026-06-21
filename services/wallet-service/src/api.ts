@@ -64,6 +64,24 @@ const CreateAccountPayload = Schema.Struct({
 });
 
 /**
+ * Request body for `POST /accounts/:id/credit` (top-up). The surface is ONLY
+ * `{ amount }` — `type` is NOT part of the request, it is server-set to
+ * `'topup'` (REQ-TOP-06), analogous to the server-set `currency` on
+ * {@link CreateAccountPayload}. A client that smuggles a `type` key sees it
+ * dropped at decode time (Effect `Schema.Struct` discards excess properties),
+ * never reaching the stored row.
+ *
+ * `amount` must be a POSITIVE INTEGER. `Schema.Int.pipe(Schema.positive())`
+ * rejects `0`, negatives, and non-integers (e.g. `1.5`) at the decode rim, so
+ * the framework returns a structured 400 BEFORE the handler runs and no
+ * `ledger_entry` is ever written (REQ-TOP-02) — the same decode-rim guard the
+ * non-empty `ownerId` uses on account creation (REQ-ACC-04).
+ */
+const CreditPayload = Schema.Struct({
+  amount: Schema.Int.pipe(Schema.positive()),
+});
+
+/**
  * Required request headers for `POST /accounts`. The `Idempotency-Key` carries
  * the idempotency token (header names are normalised to lowercase by the
  * framework). A missing key fails header decoding → structured 400 (REQ-ACC-03).
@@ -128,6 +146,13 @@ export class WalletApi extends HttpApi.make("wallet").add(
       HttpApiEndpoint.get("getAccount", "/accounts/:id")
         .setPath(AccountIdPath)
         .addSuccess(AccountDetail)
+        .addError(AccountNotFound, { status: 404 }),
+    )
+    .add(
+      HttpApiEndpoint.post("credit", "/accounts/:id/credit")
+        .setPath(AccountIdPath)
+        .setPayload(CreditPayload)
+        .addSuccess(Balance)
         .addError(AccountNotFound, { status: 404 }),
     )
     .add(HttpApiEndpoint.get("health", "/health").addSuccess(Health)),

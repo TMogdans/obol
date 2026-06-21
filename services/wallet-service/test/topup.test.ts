@@ -118,7 +118,7 @@ afterAll(async () => {
 });
 
 describe("wallet-topup — POST /accounts/{id}/credit", () => {
-  it.effect.skip(
+  it.effect(
     "[REQ-TOP-01] appends exactly one topup ledger_entry (account_id, amount, type='topup') and returns the new balance",
     () =>
       Effect.gen(function* () {
@@ -163,7 +163,7 @@ describe("wallet-topup — POST /accounts/{id}/credit", () => {
       }).pipe(Effect.provide(Layer.mergeAll(ServerLive, SqlLive))),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-TOP-02] rejects amount <= 0 (incl. 0) at the decode rim with 400 and writes NO ledger_entry",
     () =>
       Effect.gen(function* () {
@@ -207,7 +207,7 @@ describe("wallet-topup — POST /accounts/{id}/credit", () => {
       }).pipe(Effect.provide(Layer.mergeAll(ServerLive, SqlLive))),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-TOP-03] returns 404 with the structured AccountNotFound error (_tag + accountId) for a missing account and writes NO entry",
     () =>
       Effect.gen(function* () {
@@ -237,7 +237,7 @@ describe("wallet-topup — POST /accounts/{id}/credit", () => {
       }).pipe(Effect.provide(Layer.mergeAll(ServerLive, SqlLive))),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-TOP-04] returns { accountId, balance } equal to projectBalance over ALL the account's entries (read after append, not computed separately)",
     () =>
       Effect.gen(function* () {
@@ -285,7 +285,7 @@ describe("wallet-topup — POST /accounts/{id}/credit", () => {
       }).pipe(Effect.provide(Layer.mergeAll(ServerLive, SqlLive))),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-TOP-05] keeps the domain append-only: an existing entry is never UPDATEd or DELETEd, only a new row is INSERTed",
     () =>
       Effect.gen(function* () {
@@ -330,7 +330,7 @@ describe("wallet-topup — POST /accounts/{id}/credit", () => {
       }).pipe(Effect.provide(Layer.mergeAll(ServerLive, SqlLive))),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-TOP-06] request body is only { amount }: a client-supplied `type` is ignored and the stored type is server-set to 'topup'",
     () =>
       Effect.gen(function* () {
@@ -362,7 +362,7 @@ describe("wallet-topup — POST /accounts/{id}/credit", () => {
       }).pipe(Effect.provide(Layer.mergeAll(ServerLive, SqlLive))),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-TOP-07] surfaces a SqlError (existence check / append / balance read) as a 500 defect, NOT as a typed AccountNotFound client error",
     () =>
       Effect.gen(function* () {
@@ -409,7 +409,7 @@ describe("wallet-topup — POST /accounts/{id}/credit", () => {
       }).pipe(Effect.provide(Layer.mergeAll(ServerLive, SqlLive))),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-TOP-08] keeps the credit request/response types and append repo LOCAL to wallet-service (no contracts touch, no new migration, no auth) — anchored on `pnpm run arch`",
     () =>
       Effect.sync(() => {
@@ -429,7 +429,7 @@ describe("wallet-topup — POST /accounts/{id}/credit", () => {
       }),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-TOP-09] reads via the indexed account_id (idx_ledger_account) and the PK existence lookup (WHERE id = …), never a sequential scan",
     () =>
       Effect.gen(function* () {
