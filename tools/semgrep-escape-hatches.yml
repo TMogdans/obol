@@ -7,20 +7,40 @@
 #
 # Run locally: semgrep --config tools/semgrep-escape-hatches.yml --error .
 rules:
-  - id: no-test-skip
-    languages: [typescript]
+  # Reconciled mit devloops Spec-PR-Modell (v0.4.1, Obol-wallet-topup-Befund):
+  # ein "Ban-alles-.skip" widerspricht dem Spec-PR-Flow, wo spec-to-tests Tests legitim
+  # `.skip`'t reiten lässt (main bleibt grün, bis implement entskippt). Das sanctionierte
+  # Skip ist hier EXPLIZIT: ein `.skip` ist NUR auf einem REQ-getaggten Test erlaubt — der
+  # Spec-PR-Platzhalter, den implement entskippt (durch verify-unskip erzwungen). Alles
+  # andere (.only/.todo/xit/xdescribe, oder ein `.skip` ohne REQ-Tag) bleibt verbotene
+  # Fluchttür. Regex string-anchored (verlangt Titel-String-Literal direkt nach `(`), damit
+  # Prosa-/JSDoc-Erwähnungen wie `it.effect.skip(...)` NICHT fälschlich matchen. Stack-gewahr:
+  # die `(\.\w+)*`-Kette deckt auch `@effect/vitest`s `it.effect.skip` (Referenz:
+  # devloop templates/semgrep-escape-hatches.yml — dort framework-agnostisch ohne Kette).
+  - id: no-unsanctioned-test-skip
+    languages: [generic]
     severity: ERROR
-    message: "Test-Skip/only ist eine Fluchttür (Säule 2). Entferne .skip/.only oder fixe den Test."
-    pattern-either:
-      - pattern: it.skip(...)
-      - pattern: it.only(...)
-      - pattern: test.skip(...)
-      - pattern: test.only(...)
-      - pattern: describe.skip(...)
-      - pattern: describe.only(...)
-      - pattern: it.todo(...)
-      - pattern: xit(...)
-      - pattern: xdescribe(...)
+    message: >
+      Übersprungener Test ohne sanctionierten devloop-Spec-PR-Platzhalter (Säule 2). Ein `.skip`
+      ist NUR auf einem REQ-getaggten Test erlaubt (Titel enthält REQ-<CTX>-<nr>), den implement
+      entskippt. Entferne das Skip — oder REQ-tagge es, wenn es wirklich ein von spec-to-tests
+      erzeugter Spec-PR-Platzhalter ist.
+    paths:
+      exclude:
+        - "/tools/semgrep-escape-hatches.yml"
+    patterns:
+      - pattern-regex: '\b(it|test|describe)(\.\w+)*\.skip\s*\(\s*[`"'']'
+      - pattern-not-regex: '\b(it|test|describe)(\.\w+)*\.skip\s*\(\s*[`"''][^`"'']*REQ-[A-Z0-9]+-[0-9]+'
+
+  - id: no-test-focus-or-todo
+    languages: [generic]
+    severity: ERROR
+    message: >
+      Focused/todo/x-prefixed Tests sind Fluchttüren ohne sanctionierten Use (Säule 2) — entferne sie.
+    paths:
+      exclude:
+        - "/tools/semgrep-escape-hatches.yml"
+    pattern-regex: '\b((it|test|describe)(\.\w+)*\.only|(it|test)(\.\w+)*\.todo|xit|xdescribe)\b'
 
   - id: no-ts-expect-error
     languages: [typescript]
