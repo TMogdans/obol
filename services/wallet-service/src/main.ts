@@ -11,6 +11,7 @@ import { WalletApi } from "./api.js";
 import { BalanceRepo } from "./balance.js";
 import { DbLive } from "./db.js";
 import { AccountsHandlersLive } from "./handlers.js";
+import { LedgerRepo } from "./ledger.js";
 import { TelemetryLive } from "./telemetry.js";
 
 /**
@@ -45,6 +46,7 @@ export const WalletApiLive: Layer.Layer<
   Layer.provide(AccountsHandlersLive),
   Layer.provide(AccountRepo.Default.pipe(Layer.provide(DbLive), Layer.orDie)),
   Layer.provide(BalanceRepo.Default.pipe(Layer.provide(DbLive), Layer.orDie)),
+  Layer.provide(LedgerRepo.Default.pipe(Layer.provide(DbLive), Layer.orDie)),
 );
 
 /**
