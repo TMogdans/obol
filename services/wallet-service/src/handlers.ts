@@ -25,7 +25,7 @@ import { BalanceRepo } from "./balance.js";
  * {@link AccountNotFound} (mapped to HTTP 404 by the api definition); otherwise
  * it returns the projected balance — including a legitimate `0`.
  *
- * `health` is a static liveness response.
+ * `health` is a static, unauthenticated liveness response (touches no state).
  *
  * The layer requires `AccountRepo` + `BalanceRepo` (left open for the
  * composition root to provide over `DbLive`); `SqlError` from a repo is treated
