@@ -10,10 +10,8 @@
   "dependencies": {
     "@effect/platform": "^0.96.1",
     "@effect/sql": "^0.51.1",
-    "@effect/sql-pg": "^0.52.1",
     "@obol/contracts": "workspace:*",
-    "effect": "^3",
-    "nats": "^2.29.3"
+    "effect": "^3"
   },
   "devDependencies": {
     "@effect/platform-node": "^0.107.0",
