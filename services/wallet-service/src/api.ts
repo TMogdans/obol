@@ -82,6 +82,26 @@ const CreditPayload = Schema.Struct({
 });
 
 /**
+ * Request body for `POST /accounts/:id/debit` (spend). Mirror of
+ * {@link CreditPayload}: the surface is ONLY `{ amount }` and `amount` carries a
+ * POSITIVE minor-unit quantity (the spend *amount*) — `type` is NOT part of the
+ * request, it is server-set to `'spend'` (REQ-SPD-07), and the negative storage
+ * sign is server-set too (REQ-SPD-01). A client that smuggles a `type` key sees
+ * it dropped at decode time (Effect `Schema.Struct` discards excess properties),
+ * never reaching the stored row, so it can never flip the sign and credit the
+ * account instead of debiting it.
+ *
+ * `amount` must be a POSITIVE INTEGER. `Schema.Int.pipe(Schema.positive())`
+ * rejects `0`, negatives, and non-integers (e.g. `1.5`) at the decode rim — the
+ * SAME guard as `CreditPayload` (REQ-TOP-02) — so the framework returns a
+ * structured 400 BEFORE the handler runs and no `ledger_entry` is ever written
+ * (REQ-SPD-03).
+ */
+const SpendPayload = Schema.Struct({
+  amount: Schema.Int.pipe(Schema.positive()),
+});
+
+/**
  * Required request headers for `POST /accounts`. The `Idempotency-Key` carries
  * the idempotency token (header names are normalised to lowercase by the
  * framework). A missing key fails header decoding → structured 400 (REQ-ACC-03).
@@ -111,6 +131,22 @@ const AccountIdPath = Schema.Struct({
  */
 export class AccountNotFound extends Schema.TaggedError<AccountNotFound>()(
   "AccountNotFound",
+  { accountId: Schema.String },
+) {}
+
+/**
+ * Structured error returned when a debit (spend) would overdraw the account —
+ * `amount > available balance` (REQ-SPD-02). As a `Schema.TaggedError` it
+ * serialises to a JSON body carrying `_tag = "InsufficientFunds"` and
+ * `accountId`, and `addError(..., { status: 409 })` maps it to HTTP 409.
+ *
+ * Deliberately carries ONLY `{ accountId }` — NO balance / deficit field: the
+ * body must not leak the available balance over a rejected (unauthorised) write
+ * attempt; the status code carries the semantics. Mirrors {@link AccountNotFound}
+ * in shape, distinct in tag and status.
+ */
+export class InsufficientFunds extends Schema.TaggedError<InsufficientFunds>()(
+  "InsufficientFunds",
   { accountId: Schema.String },
 ) {}
 
@@ -154,6 +190,14 @@ export class WalletApi extends HttpApi.make("wallet").add(
         .setPayload(CreditPayload)
         .addSuccess(Balance)
         .addError(AccountNotFound, { status: 404 }),
+    )
+    .add(
+      HttpApiEndpoint.post("debit", "/accounts/:id/debit")
+        .setPath(AccountIdPath)
+        .setPayload(SpendPayload)
+        .addSuccess(Balance)
+        .addError(AccountNotFound, { status: 404 })
+        .addError(InsufficientFunds, { status: 409 }),
     )
     .add(HttpApiEndpoint.get("health", "/health").addSuccess(Health)),
 ) {}

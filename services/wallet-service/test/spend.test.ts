@@ -135,7 +135,7 @@ afterAll(async () => {
 });
 
 describe("wallet-spend — POST /accounts/{id}/debit", () => {
-  it.effect.skip(
+  it.effect(
     "[REQ-SPD-01] appends exactly one spend ledger_entry (account_id, type='spend', amount_stored = -amount) and returns the new balance",
     () =>
       Effect.gen(function* () {
@@ -184,7 +184,7 @@ describe("wallet-spend — POST /accounts/{id}/debit", () => {
       }).pipe(Effect.provide(Layer.mergeAll(ServerLive, SqlLive))),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-SPD-02] rejects amount > balance with 409 InsufficientFunds (_tag + accountId, NO balance leakage) and writes NO ledger_entry",
     () =>
       Effect.gen(function* () {
@@ -229,7 +229,7 @@ describe("wallet-spend — POST /accounts/{id}/debit", () => {
       }).pipe(Effect.provide(Layer.mergeAll(ServerLive, SqlLive))),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-SPD-03] rejects amount <= 0 (incl. 0, negative, non-integer) at the decode rim with 400 and writes NO ledger_entry",
     () =>
       Effect.gen(function* () {
@@ -274,7 +274,7 @@ describe("wallet-spend — POST /accounts/{id}/debit", () => {
       }).pipe(Effect.provide(Layer.mergeAll(ServerLive, SqlLive))),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-SPD-04] returns 404 with the structured AccountNotFound error (_tag + accountId) for a missing account and writes NO entry",
     () =>
       Effect.gen(function* () {
@@ -306,7 +306,7 @@ describe("wallet-spend — POST /accounts/{id}/debit", () => {
       }).pipe(Effect.provide(Layer.mergeAll(ServerLive, SqlLive))),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-SPD-05] returns { accountId, balance } equal to projectBalance over ALL the account's entries (read after append, not alterSaldo - amount)",
     () =>
       Effect.gen(function* () {
@@ -356,7 +356,7 @@ describe("wallet-spend — POST /accounts/{id}/debit", () => {
       }).pipe(Effect.provide(Layer.mergeAll(ServerLive, SqlLive))),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-SPD-06] keeps the domain append-only: an existing entry is never UPDATEd or DELETEd, only a new spend row is INSERTed",
     () =>
       Effect.gen(function* () {
@@ -401,7 +401,7 @@ describe("wallet-spend — POST /accounts/{id}/debit", () => {
       }).pipe(Effect.provide(Layer.mergeAll(ServerLive, SqlLive))),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-SPD-07] request body is only { amount }: a client-supplied `type` is ignored and the stored type is server-set to 'spend'",
     () =>
       Effect.gen(function* () {
@@ -444,7 +444,7 @@ describe("wallet-spend — POST /accounts/{id}/debit", () => {
       }).pipe(Effect.provide(Layer.mergeAll(ServerLive, SqlLive))),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-SPD-08] surfaces a SqlError (existence check / balance read / append) as a 500 defect, NOT as a typed AccountNotFound or InsufficientFunds client error",
     () =>
       Effect.gen(function* () {
@@ -493,7 +493,7 @@ describe("wallet-spend — POST /accounts/{id}/debit", () => {
       }).pipe(Effect.provide(Layer.mergeAll(ServerLive, SqlLive))),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-SPD-09] keeps the spend request/response types, InsufficientFunds error and append repo LOCAL to wallet-service (no contracts touch, no new migration, no auth) — anchored on `pnpm run arch`",
     () =>
       Effect.sync(() => {
@@ -514,7 +514,7 @@ describe("wallet-spend — POST /accounts/{id}/debit", () => {
       }),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-SPD-10] reads the balance via the indexed account_id (idx_ledger_account) and the PK existence lookup (WHERE id = …), never a sequential scan",
     () =>
       Effect.gen(function* () {
@@ -553,7 +553,7 @@ describe("wallet-spend — POST /accounts/{id}/debit", () => {
       }).pipe(Effect.provide(SqlLive)),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-SPD-02] allows a spend exactly equal to the balance (amount == balance) and lands the account on exactly 0",
     () =>
       Effect.gen(function* () {

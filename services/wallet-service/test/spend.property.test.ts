@@ -14,7 +14,7 @@ import { projectBalance } from "../src/balance.pure.js";
  * `balance.pure.ts` (mutation-tested via Stryker, cf. `projectBalance`), so we
  * exercise it directly here — no Testcontainers, cheap to mutate.
  *
- * devloop spec-PR seam: each `it.skip("[REQ-SPD-11] …")` is the SANCTIONED skip
+ * devloop spec-PR seam: each `it("[REQ-SPD-11] …")` is the SANCTIONED skip
  * idiom (REQ tag in the title literal right after `(`), so the escape-hatch
  * guard passes and the trace gate counts the tag as coverage while vitest does
  * not redden it. The `debit` write path does not exist yet, but the pure
@@ -69,7 +69,7 @@ const applyValidSequence = (ops: ReadonlyArray<Op>): ReadonlyArray<number> => {
   return signed;
 };
 
-it.skip("[REQ-SPD-11] the projected balance is never negative at any prefix of a valid topup/spend history", () => {
+it("[REQ-SPD-11] the projected balance is never negative at any prefix of a valid topup/spend history", () => {
   fc.assert(
     fc.property(fc.array(op), (ops) => {
       const signed = applyValidSequence(ops);
@@ -84,7 +84,7 @@ it.skip("[REQ-SPD-11] the projected balance is never negative at any prefix of a
   );
 });
 
-it.skip("[REQ-SPD-11] the final projected balance equals exactly the sum of the appended signed amounts", () => {
+it("[REQ-SPD-11] the final projected balance equals exactly the sum of the appended signed amounts", () => {
   fc.assert(
     fc.property(fc.array(op), (ops) => {
       const signed = applyValidSequence(ops);
@@ -97,7 +97,7 @@ it.skip("[REQ-SPD-11] the final projected balance equals exactly the sum of the 
   );
 });
 
-it.skip("[REQ-SPD-11] a spend covered by the running balance never drives the balance below zero (equality boundary reaches exactly 0)", () => {
+it("[REQ-SPD-11] a spend covered by the running balance never drives the balance below zero (equality boundary reaches exactly 0)", () => {
   fc.assert(
     fc.property(fc.array(op), (ops) => {
       const signed = applyValidSequence(ops);
