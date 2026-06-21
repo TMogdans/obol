@@ -5,6 +5,7 @@ import {
   AccountCreated,
   AccountExisted,
   AccountNotFound,
+  InsufficientFunds,
   WalletApi,
 } from "./api.js";
 import { BalanceRepo } from "./balance.js";
@@ -141,6 +142,69 @@ export const AccountsHandlersLive = HttpApiBuilder.group(
             // The new balance is READ from the projection over ALL of the
             // account's entries (REQ-TOP-04) — it is never computed separately
             // from the request amount, so the returned figure is the same
+            // aggregation the balance-query serves.
+            const balance = yield* repo.balanceFor(path.id).pipe(dieOnSqlError);
+            return { accountId: path.id, balance };
+          }),
+        )
+        .handle("debit", ({ path, payload }) =>
+          Effect.gen(function* () {
+            // The decode rim already rejected amount <= 0 / non-integer with a
+            // structured 400 (REQ-SPD-03), so `payload.amount` is a positive
+            // integer here. `type` was never on the request surface; the repo
+            // server-sets it to 'spend' and negates the stored amount
+            // (REQ-SPD-01/07).
+            //
+            // `SqlError` is NOT a declared client error on this endpoint: a DB
+            // fault (existence check / balance read / append) is an unexpected
+            // defect (→ 500, REQ-SPD-08), never a typed client error. We send it
+            // to the defect channel via `Effect.die`, carrying a 500
+            // `HttpServerResponse` so the body is a structured JSON the
+            // framework renders verbatim — its `_tag` is deliberately NEITHER
+            // `AccountNotFound` NOR `InsufficientFunds`, so a DB fault can never
+            // masquerade as a missing account nor as a coverage shortfall. The
+            // only typed failures stay AccountNotFound (404) / InsufficientFunds
+            // (409).
+            const dieOnSqlError = Effect.catchAll(() =>
+              Effect.die(
+                HttpServerResponse.unsafeJson(
+                  { _tag: "InternalServerError" },
+                  { status: 500 },
+                ),
+              ),
+            );
+
+            // (2) Existence check FIRST so a missing account fails with the
+            // typed AccountNotFound (→ 404, REQ-SPD-04) BEFORE the balance read —
+            // a missing account is never a 409, and no orphan entry is written.
+            const exists = yield* repo
+              .accountExists(path.id)
+              .pipe(dieOnSqlError);
+            if (!exists) {
+              return yield* new AccountNotFound({ accountId: path.id });
+            }
+
+            // (3) Read the available balance from the projection and check
+            // coverage BEFORE any append (REQ-SPD-02). The invariant "balance
+            // never negative": reject `amount > balance` with 409; equality
+            // (`amount == balance`) is ALLOWED and drives the balance to 0. On
+            // rejection NO ledger_entry is written.
+            const available = yield* repo
+              .balanceFor(path.id)
+              .pipe(dieOnSqlError);
+            if (payload.amount > available) {
+              return yield* new InsufficientFunds({ accountId: path.id });
+            }
+
+            // (4) Append exactly one negative ledger_entry (type 'spend',
+            // amount_stored = -amount; REQ-SPD-01/06).
+            yield* ledger
+              .appendSpend(path.id, payload.amount)
+              .pipe(dieOnSqlError);
+
+            // The new balance is READ from the projection over ALL of the
+            // account's entries (REQ-SPD-05) — never computed separately as
+            // `available - amount`, so the returned figure is the same
             // aggregation the balance-query serves.
             const balance = yield* repo.balanceFor(path.id).pipe(dieOnSqlError);
             return { accountId: path.id, balance };
