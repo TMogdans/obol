@@ -69,9 +69,21 @@ importers:
       '@effect/platform':
         specifier: ^0.96.1
         version: 0.96.1(effect@3.21.3)
+      '@effect/sql':
+        specifier: ^0.51.1
+        version: 0.51.1(@effect/experimental@0.60.0(@effect/platform@0.96.1(effect@3.21.3))(effect@3.21.3))(@effect/platform@0.96.1(effect@3.21.3))(effect@3.21.3)
+      '@effect/sql-pg':
+        specifier: ^0.52.1
+        version: 0.52.1(@effect/experimental@0.60.0(@effect/platform@0.96.1(effect@3.21.3))(effect@3.21.3))(@effect/platform@0.96.1(effect@3.21.3))(@effect/sql@0.51.1(@effect/experimental@0.60.0(@effect/platform@0.96.1(effect@3.21.3))(effect@3.21.3))(@effect/platform@0.96.1(effect@3.21.3))(effect@3.21.3))(effect@3.21.3)
+      '@obol/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       effect:
         specifier: ^3
         version: 3.21.3
+      nats:
+        specifier: ^2.29.3
+        version: 2.29.3
     devDependencies:
       '@effect/platform-node':
         specifier: ^0.107.0
@@ -79,6 +91,12 @@ importers:
       '@effect/vitest':
         specifier: ^0.18.1
         version: 0.18.1(effect@3.21.3)(vitest@2.1.9(@types/node@25.9.3))
+      '@testcontainers/postgresql':
+        specifier: ^12.0.2
+        version: 12.0.2
+      fast-check:
+        specifier: ^3.23.2
+        version: 3.23.2
       vitest:
         specifier: ^2.1.0
         version: 2.1.9(@types/node@25.9.3)
