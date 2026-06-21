@@ -19,6 +19,8 @@ on:
     types: [opened, reopened, ready_for_review, synchronize]
   pull_request_review:
     types: [submitted]
+  push:
+    branches: [main]
 
 # Least privilege: nur, was zum Scharfschalten + serverseitigen Merge nötig ist.
 permissions:
@@ -30,8 +32,10 @@ jobs:
     runs-on: ubuntu-latest
     # NUR PRs des Agent-Bots (der Produzent). Menschen-PRs mergt der Mensch selbst — kein
     # versehentliches Auto-Mergen fremder PRs. Drafts sind ausgenommen (Auto-Merge unzulässig).
+    # NUR auf PR-/Review-Events (auf `push` ist github.event.pull_request leer → übersprungen).
     if: >-
-      github.event.pull_request.user.login == 'sir-tobys-usefull-helper-agent[bot]'
+      github.event_name != 'push'
+      && github.event.pull_request.user.login == 'sir-tobys-usefull-helper-agent[bot]'
       && github.event.pull_request.draft == false
     steps:
       - name: Enable native auto-merge (squash)
@@ -41,3 +45,39 @@ jobs:
         # Idempotent: ist Auto-Merge schon aktiv, ist der erneute Aufruf ein No-op-Fehler, den
         # wir schlucken. GitHub merged erst, wenn ALLE Required Checks (inkl. precondition-check) grün sind.
         run: gh pr merge "$PR" --auto --squash --repo "${{ github.repository }}" || true
+
+  # Nach jedem Merge auf main: offene PRs mit scharfgeschaltetem Auto-Merge, die jetzt BEHIND
+  # sind, per update-branch nachziehen. Bei strict Branch Protection ("require branches up to
+  # date") feuert GitHubs natives Auto-Merge sonst NICHT — jeder nachrangige Serien-PR stockt,
+  # bis sein Branch nachgezogen wird (devloop-Befund 2026-06-21, wallet-topup #29/#30: dort war
+  # `gh pr update-branch` zweimal manuell nötig).
+  update-behind-auto-merge-prs:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    # Sweeps serialisieren, statt sich zu überholen (kein cancel: jeder Merge soll wirken).
+    concurrency:
+      group: update-behind-auto-merge-prs
+      cancel-in-progress: false
+    steps:
+      - name: Re-sync BEHIND auto-merge PRs to base
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        # Filter über `autoMergeRequest != null` statt Bot-Login: das ist das semantisch korrekte
+        # Kriterium (PR WILL auto-mergen, ist aber blockiert) und umgeht die App-Login-Format-
+        # Uneindeutigkeit (REST `…[bot]` vs. GraphQL `app/…`). Nur dieser Workflow schaltet Bot-PRs
+        # scharf; ein Mensch, der selbst Auto-Merge aktiviert, profitiert harmlos mit.
+        # update-branch auf einem bereits aktuellen Branch ist ein No-op-Fehler (kein neuer Commit,
+        # kein Check-Re-Run) → mit `|| true` geschluckt. Deshalb ziehen wir ALLE armed PRs nach
+        # (nicht nur die als BEHIND gemeldeten): race-frei gegenüber noch nicht berechnetem
+        # mergeStateStatus direkt nach dem Merge.
+        run: |
+          set -o pipefail
+          gh pr list --repo "$REPO" --state open --base main \
+            --json number,autoMergeRequest \
+            --jq '.[] | select(.autoMergeRequest != null) | .number' \
+          | while read -r pr; do
+              [ -z "$pr" ] && continue
+              echo "Re-syncing PR #$pr to base"
+              gh pr update-branch "$pr" --repo "$REPO" || true
+            done
