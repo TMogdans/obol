@@ -65,7 +65,7 @@ describe("ledger-event-publish — LedgerEntryRecorded contract", () => {
     occurredAt: "2026-06-21T12:00:00.000Z",
   } as const;
 
-  it.effect.skip(
+  it.effect(
     "[REQ-EVT-07] is a Schema.Struct with exactly entryId/accountId/amount/occurredAt and decodes a valid event to those values",
     () =>
       Effect.gen(function* () {
@@ -87,7 +87,7 @@ describe("ledger-event-publish — LedgerEntryRecorded contract", () => {
       }),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-EVT-07] carries a negative signed amount unchanged for a spend event",
     () =>
       Effect.gen(function* () {
@@ -102,7 +102,7 @@ describe("ledger-event-publish — LedgerEntryRecorded contract", () => {
       }),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-EVT-07] rejects a non-integer amount (amount is Schema.Int, not Schema.Number)",
     () =>
       Effect.gen(function* () {
@@ -115,7 +115,7 @@ describe("ledger-event-publish — LedgerEntryRecorded contract", () => {
       }),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-EVT-07] rejects a payload whose fields have the wrong primitive type (string entryId/accountId/occurredAt, int amount)",
     () =>
       Effect.gen(function* () {
@@ -155,7 +155,7 @@ describe("ledger-event-publish — LedgerEntryRecorded contract", () => {
       }),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-EVT-07] rejects a payload missing any of the four required fields",
     () =>
       Effect.gen(function* () {
@@ -176,7 +176,7 @@ describe("ledger-event-publish — LedgerEntryRecorded contract", () => {
       }),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-EVT-02] encodes a valid event before publish (Schema.encode round-trips to the wire shape)",
     () =>
       Effect.gen(function* () {
@@ -192,7 +192,7 @@ describe("ledger-event-publish — LedgerEntryRecorded contract", () => {
       }),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-EVT-02] fails encoding a schema-violating event so no invalid event can be published",
     () =>
       Effect.gen(function* () {
@@ -208,7 +208,7 @@ describe("ledger-event-publish — LedgerEntryRecorded contract", () => {
       }),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-EVT-02] is exported from the package barrel (packages/contracts/src/index.ts) AND the deep module (src/ledger.ts) as the single shared source",
     () =>
       Effect.gen(function* () {
@@ -229,7 +229,7 @@ describe("ledger-event-publish — LedgerEntryRecorded contract", () => {
       }),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-EVT-07] is field-compatible with LedgerEntry (entryId↔id, occurredAt↔createdAt, same amount type)",
     () =>
       Effect.gen(function* () {

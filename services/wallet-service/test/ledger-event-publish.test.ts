@@ -160,7 +160,7 @@ afterAll(async () => {
 });
 
 describe("ledger-event-publish — producer path", () => {
-  it.effect.skip(
+  it.effect(
     "[REQ-EVT-01] a successful topup persists exactly one ledger_entry AND queues exactly one outbox row with the entry's fields (entryId/accountId/+amount)",
     () =>
       Effect.gen(function* () {
@@ -206,7 +206,7 @@ describe("ledger-event-publish — producer path", () => {
       }).pipe(Effect.provide(Layer.mergeAll(ServerLive, SqlLive))),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-EVT-01] a successful spend queues exactly one outbox row carrying the NEGATIVE stored amount",
     () =>
       Effect.gen(function* () {
@@ -234,7 +234,7 @@ describe("ledger-event-publish — producer path", () => {
       }).pipe(Effect.provide(Layer.mergeAll(ServerLive, SqlLive))),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-EVT-04] if the outbox insert fails, the ledger_entry is NOT committed either (shared transaction); there is never an entry without its outbox row",
     () =>
       Effect.gen(function* () {
@@ -283,7 +283,7 @@ describe("ledger-event-publish — producer path", () => {
       }).pipe(Effect.provide(Layer.mergeAll(ServerLive, SqlLive))),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-EVT-05] a NATS publish failure AFTER commit does NOT roll back the entry, does NOT fail the HTTP request, and leaves the outbox row unsent for retry",
     () =>
       Effect.gen(function* () {
@@ -342,7 +342,7 @@ describe("ledger-event-publish — producer path", () => {
       }).pipe(Effect.provide(Layer.mergeAll(ServerLive, SqlLive))),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-EVT-03] [REQ-EVT-10] a drain pass with a working publisher publishes each pending row on subject `ledger.entry.recorded` and marks it sent; a re-drain publishes nothing (no duplicate on the happy path)",
     () =>
       Effect.gen(function* () {
@@ -409,7 +409,7 @@ describe("ledger-event-publish — producer path", () => {
       }).pipe(Effect.provide(Layer.mergeAll(ServerLive, SqlLive))),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-EVT-06] the ledger write path stays append-only: exactly one INSERT into ledger_entry per request, no UPDATE/DELETE; the outbox sent-flip is on the SEPARATE outbox table",
     () =>
       Effect.gen(function* () {
@@ -478,7 +478,7 @@ describe("ledger-event-publish — producer path", () => {
       }).pipe(Effect.provide(Layer.mergeAll(ServerLive, SqlLive))),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-EVT-09] the pending-outbox read is index-backed (idx_ledger_outbox_pending), never a sequential scan over the whole outbox history",
     () =>
       Effect.gen(function* () {

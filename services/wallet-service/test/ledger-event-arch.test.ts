@@ -32,7 +32,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "..", "..", "..");
 
 describe("ledger-event-publish — boundaries / Tier (REQ-EVT-08)", () => {
-  it.effect.skip(
+  it.effect(
     "[REQ-EVT-08] respects the dependency boundaries (no cycle/orphan, wallet-service depends on @obol/contracts only via the package, no cross-service import) — anchored on `pnpm run arch`",
     () =>
       Effect.sync(() => {
@@ -50,7 +50,7 @@ describe("ledger-event-publish — boundaries / Tier (REQ-EVT-08)", () => {
       }),
   );
 
-  it.skip("[REQ-EVT-08] the LedgerEntryRecorded schema lives in packages/contracts (the T3 contract path), not service-locally in wallet-service", () => {
+  it("[REQ-EVT-08] the LedgerEntryRecorded schema lives in packages/contracts (the T3 contract path), not service-locally in wallet-service", () => {
     // The event schema is defined ONCE in the shared contracts package
     // (REQ-EVT-02) — that is one of the two T3-defining touches. Assert it is
     // declared there and re-exported through the barrel.
@@ -80,7 +80,7 @@ describe("ledger-event-publish — boundaries / Tier (REQ-EVT-08)", () => {
     }
   });
 
-  it.skip("[REQ-EVT-08] introduces exactly the one new outbox migration 0003_*.sql under wallet-service/migrations and touches NO **/auth/** path", () => {
+  it("[REQ-EVT-08] introduces exactly the one new outbox migration 0003_*.sql under wallet-service/migrations and touches NO **/auth/** path", () => {
     // The outbox migration is the second T3-defining touch — there must be a
     // single new migration whose ordinal is 0003 for the outbox.
     const migrationsDir = resolve(
