@@ -294,17 +294,15 @@ agpr() {
     return 2
   fi
   _obol_agent_token || return 1
-  # Body JSON via node (guaranteed present; no jq dependency). title/body are not
-  # secret, so they go through a temp file; the token stays in the stdin config.
-  local tmp; tmp="$(mktemp)"
-  node -e 'const [t,b,h,ba]=process.argv.slice(1);process.stdout.write(JSON.stringify({title:t,body:b,head:h,base:ba}))' \
-    "$title" "$body" "$head" "$base" > "$tmp"
+  # Body JSON via node (no jq dependency), passed INLINE via --data. No temp file:
+  # mktemp's default dir (/var/folders/.../T) is not writable under the Claude Code
+  # sandbox, and title/body are not secret. The token stays in the stdin --config.
+  local json
+  json="$(node -e 'const [t,b,h,ba]=process.argv.slice(1);process.stdout.write(JSON.stringify({title:t,body:b,head:h,base:ba}))' \
+    "$title" "$body" "$head" "$base")" || return 1
   _obol_curl_config | curl -sS -X POST \
     "https://api.github.com/repos/$OBOL_AGENT_REPO/pulls" \
-    --config - --data "@$tmp"
-  local rc=$?
-  rm -f "$tmp"
-  return $rc
+    --config - --data "$json"
 }
 
 # Read-only sanity check.
