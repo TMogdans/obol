@@ -70,7 +70,7 @@ afterAll(async () => {
 });
 
 describe("statement-projection — persistence & read path (REQ-STMT-05/-09)", () => {
-  it.skip("[REQ-STMT-05] introduces exactly the one new migration 0001_statement_projection.sql under statement-service/migrations, creating statement_line with entry_id as PRIMARY KEY, and touches NO **/auth/** path", () => {
+  it("[REQ-STMT-05] introduces exactly the one new migration 0001_statement_projection.sql under statement-service/migrations, creating statement_line with entry_id as PRIMARY KEY, and touches NO **/auth/** path", () => {
     // The migration is the single T3-defining touch for this feature.
     const files = readdirSync(migrationsDir).filter((f) => f.endsWith(".sql"));
     const created = files.filter((f) =>
@@ -103,7 +103,7 @@ describe("statement-projection — persistence & read path (REQ-STMT-05/-09)", (
     }
   });
 
-  it.effect.skip(
+  it.effect(
     "[REQ-STMT-05] the migration applies on a fresh DB and the entry_id PRIMARY KEY enforces idempotency: a duplicate entry_id insert is rejected/ignored (DB-enforced dedup, survives restart)",
     () =>
       Effect.gen(function* () {
@@ -172,7 +172,7 @@ describe("statement-projection — persistence & read path (REQ-STMT-05/-09)", (
     { timeout: 120000 },
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-STMT-09] the per-account statement read is index-backed over (account_id, occurred_at desc), never a sequential scan over the whole statement table",
     () =>
       Effect.gen(function* () {
@@ -206,7 +206,7 @@ describe("statement-projection — persistence & read path (REQ-STMT-05/-09)", (
     { timeout: 120000 },
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-STMT-09] appending a unique event is exactly one INSERT; a duplicate produces no additional durable write (PK conflict no-op) — anchored on `pnpm run arch` for the no-cross-service-import boundary",
     () =>
       Effect.sync(() => {

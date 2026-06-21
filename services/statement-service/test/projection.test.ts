@@ -146,7 +146,7 @@ afterAll(async () => {
 });
 
 describe("statement-projection — consumer / projection path", () => {
-  it.effect.skip(
+  it.effect(
     "[REQ-STMT-01] consuming one LedgerEntryRecorded event appends exactly one statement line for the event's account, carrying the four event fields verbatim (signed amount unchanged, append-only)",
     () =>
       Effect.gen(function* () {
@@ -216,7 +216,7 @@ describe("statement-projection — consumer / projection path", () => {
       }),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-STMT-03] GET /accounts/{id}/statement returns ONLY this account's lines, newest-first by occurredAt with a deterministic entryId tie-break, each unique entryId exactly once",
     () =>
       Effect.gen(function* () {
@@ -300,7 +300,7 @@ describe("statement-projection — consumer / projection path", () => {
       }),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-STMT-04] an account with no consumed events yields a successful EMPTY list — not a 404, not an error",
     () =>
       Effect.gen(function* () {
@@ -326,7 +326,7 @@ describe("statement-projection — consumer / projection path", () => {
       }),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-STMT-06] the consumer decodes the NATS payload against @obol/contracts' LedgerEntryRecorded (the shared schema) before projecting — no service-local event copy",
     () =>
       Effect.gen(function* () {
@@ -380,7 +380,7 @@ describe("statement-projection — consumer / projection path", () => {
       }),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-STMT-07] a schema-violating message appends NO statement line and does NOT poison the stream — a later valid message still projects normally",
     () =>
       Effect.gen(function* () {
@@ -450,7 +450,7 @@ describe("statement-projection — consumer / projection path", () => {
       }),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-STMT-08] the consumer subscribes on the stable, documented subject `ledger.entry.recorded` (the producer's contract subject)",
     () =>
       Effect.gen(function* () {
