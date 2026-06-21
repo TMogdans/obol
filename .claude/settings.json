@@ -21,8 +21,18 @@
     "enabled": true,
     "allowUnsandboxedCommands": true,
     "filesystem": {
-      "allowWrite": ["~/Library/pnpm", "~/.cache"],
-      "denyRead": ["~/.ssh", "~/.aws"]
+      "allowWrite": [
+        "~/Library/pnpm",
+        "~/.cache",
+        "~/.semgrep",
+        "~/Code/obol/.git/config",
+        "~/Code/obol/.git/worktrees"
+      ],
+      "denyRead": ["~/.ssh", "~/.aws"],
+      "allowRead": [
+        "~/.ssh/sir-tobys-usefull-helper-agent.2026-06-18.private-key.pem",
+        "~/.ssh/known_hosts"
+      ]
     },
     "network": {
       "allowedDomains": [
