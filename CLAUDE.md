@@ -23,6 +23,18 @@ agpush [branch]     # pusht HEAD als Bot (HTTPS + ephemerer Token); origin/SSH b
 agpr <gh pr args>   # öffnet PR als Bot, z.B.  agpr --base main --head <branch> --title … --body …
 ```
 
+**CI-Status NICHT mit `gh` lesen — `gh` (Go-Binary) bricht in der Sandbox an der TLS-Prüfung.**
+Stattdessen die curl-basierten Read-Helfer aus `env.sh` nutzen (laufen sandboxed, unauthentifiziert,
+obol ist public):
+
+```bash
+source ~/.config/obol-agent/env.sh
+agchecks [ref]      # check-runs für ref (default HEAD)        statt `gh pr checks`
+agstatus [ref]      # combined commit status                    statt `gh api .../status`
+agruns   [ref]      # workflow runs für ref                     statt `gh run list`
+agjobs   <run-id>   # Jobs + fehlgeschlagene Steps eines Runs   statt `gh run view --log-failed`
+```
+
 Volldoku: [infra/agent-identity.md](./infra/agent-identity.md). `origin` und der persönliche
 `gh`-Login bleiben unangetastet.
 

@@ -219,6 +219,12 @@ rewrites the repo's git config or your personal identity. Tokens are cached in t
 #   agpush [branch]     # push current HEAD as the bot (HTTPS + short-lived token)
 #   agpr --base main --head <branch> --title "…" --body "…"   # open a PR as the bot
 #
+#   # Read-only CI helpers (replace `gh pr checks/view`, `gh run …` — see below):
+#   agchecks [ref]      # check-runs for a ref (default HEAD)
+#   agstatus [ref]      # combined commit status for a ref (default HEAD)
+#   agruns   [ref]      # workflow runs for a ref (default HEAD)
+#   agjobs   <run-id>   # jobs + failing steps of a run (which step broke)
+#
 # The bot is the PRODUCER. You (a CODEOWNER) review and merge. Different
 # principals -> no self-approval deadlock.
 
@@ -309,6 +315,43 @@ agwhoami() {
     "https://api.github.com/installation/repositories" \
   | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{JSON.parse(s).repositories.forEach(r=>console.log("token scope   : "+r.full_name))}catch(e){console.error("agwhoami: "+s)}})'
 }
+
+# --- Read-only CI helpers ----------------------------------------------------
+# Replace `gh pr checks/view`, `gh api .../status`, `gh run …` so that ALL reads
+# go over curl and run INSIDE the Claude Code sandbox. UNAUTHENTICATED: obol is a
+# public repo (~60 req/h), and the bot App lacks Checks/Actions read scopes, so an
+# authenticated bot-token read would 403. For the 5000 req/h limit, grant the App
+# Checks+Actions (read) and route these through `_obol_curl_config`.
+_obol_read() {
+  curl -sS \
+    -H "Accept: application/vnd.github+json" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    -H "User-Agent: obol-agent" \
+    "https://api.github.com/repos/$OBOL_AGENT_REPO/$1"
+}
+_obol_ref() { git rev-parse "${1:-HEAD}" 2>/dev/null; }
+
+agchecks() {  # check-runs for a ref. Replaces `gh pr checks`.
+  local sha; sha="$(_obol_ref "$1")" || return 1
+  _obol_read "commits/$sha/check-runs" \
+  | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const d=JSON.parse(s);console.log("check-runs:",d.total_count);(d.check_runs||[]).forEach(c=>console.log(" ",c.status,c.conclusion||"-",c.name))})'
+}
+agstatus() {  # combined commit status. Replaces `gh api .../status`.
+  local sha; sha="$(_obol_ref "$1")" || return 1
+  _obol_read "commits/$sha/status" \
+  | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const d=JSON.parse(s);console.log("state:",d.state,"("+d.total_count+")");(d.statuses||[]).forEach(x=>console.log(" ",x.state,x.context))})'
+}
+agruns() {    # workflow runs for a ref. Replaces `gh run list`.
+  local sha; sha="$(_obol_ref "$1")" || return 1
+  _obol_read "actions/runs?head_sha=$sha" \
+  | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const d=JSON.parse(s);console.log("runs:",d.total_count);(d.workflow_runs||[]).forEach(r=>console.log(" ",r.id,r.status,r.conclusion||"-",r.name,"|ev:",r.event))})'
+}
+agjobs() {    # jobs + failing steps of a run. Replaces `gh run view --log-failed`.
+  local run="$1"
+  [ -z "$run" ] && { echo "agjobs: run-id erforderlich (siehe agruns)" >&2; return 2; }
+  _obol_read "actions/runs/$run/jobs" \
+  | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const d=JSON.parse(s);(d.jobs||[]).forEach(j=>{console.log(j.status,j.conclusion||"-",j.name);(j.steps||[]).filter(st=>st.conclusion&&st.conclusion!=="success"&&st.conclusion!=="skipped").forEach(st=>console.log("   x",st.conclusion,st.name))})})'
+}
 ```
 
 Key properties:
@@ -337,11 +380,21 @@ agwhoami            # read-only: prints the bot's commit identity + the repos th
 # ... agent does its work, commits on a feature branch ...
 agpush my-feature   # push HEAD to refs/heads/my-feature as the bot
 agpr --base main --head my-feature --title "…" --body "…"   # open the PR as the bot
+
+# Watch CI — over curl, never `gh` (which breaks TLS in the sandbox):
+agruns              # workflow runs for HEAD; grab a run id
+agchecks            # check-runs for HEAD (green/red per gate)
+agjobs <run-id>     # which job/step failed
 ```
 
 `agwhoami` is the cheap "is everything wired?" check. `agpush` defaults to the current branch name if you
 omit the argument. `agpr` builds the PR over the REST API and takes `--base`, `--head`, `--title`, `--body`
 (no arbitrary `gh` flags; `--base` defaults to `main`).
+
+The read helpers (`agchecks`/`agstatus`/`agruns`/`agjobs`) replace `gh pr checks/view` and `gh run …` so
+that CI polling also stays sandbox-native: `gh` is a Go binary and fails TLS against the macOS truststore
+under Seatbelt, whereas curl carries its own CA bundle. They read unauthenticated (the repo is public), so
+they need no token and no extra App scope.
 
 ## Verify
 
