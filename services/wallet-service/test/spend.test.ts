@@ -470,8 +470,9 @@ describe("wallet-spend — POST /accounts/{id}/debit", () => {
         expect(body._tag).not.toBe("AccountNotFound");
         expect(body._tag).not.toBe("InsufficientFunds");
 
-        // Restore the schema so the shared fixture survives for any case
-        // ordering (this test is destructive to the shared container).
+        // Restore the schema AND re-seed the fixture data so the shared
+        // container survives for any case ordering (this test is destructive:
+        // DROP TABLE ... CASCADE wipes the seeded ledger rows too).
         yield* sql`
           CREATE TABLE ledger_entry (
             id              text PRIMARY KEY,
@@ -489,6 +490,21 @@ describe("wallet-spend — POST /accounts/{id}/debit", () => {
         `;
         yield* sql`
           CREATE RULE ledger_no_delete AS ON DELETE TO ledger_entry DO INSTEAD NOTHING
+        `;
+        // Re-seed the FULL set of ledger_entry rows the beforeAll inserted, so
+        // this destructive test leaves the shared fixture intact for any later
+        // case (e.g. [REQ-SPD-02] exact depends on acc-spd-exact holding 500).
+        // The no_update/no_delete RULEs only block UPDATE/DELETE — INSERT is
+        // still permitted, so the fixture can be faithfully rebuilt.
+        yield* sql`
+          INSERT INTO ledger_entry (id, account_id, amount, type, idempotency_key)
+          VALUES
+            ('led-spd-happy', 'acc-spd-happy', 1000, 'topup', 'idem-spd-happy'),
+            ('led-spd-insuf', 'acc-spd-insufficient', 100, 'topup', 'idem-spd-insuf'),
+            ('led-spd-shape', 'acc-spd-shape', 1000, 'topup', 'idem-spd-shape'),
+            ('led-spd-append', 'acc-spd-append', 1000, 'topup', 'idem-spd-append'),
+            ('led-spd-surface', 'acc-spd-surface', 1000, 'topup', 'idem-spd-surface'),
+            ('led-spd-exact', 'acc-spd-exact', 500, 'topup', 'idem-spd-exact')
         `;
       }).pipe(Effect.provide(Layer.mergeAll(ServerLive, SqlLive))),
   );
