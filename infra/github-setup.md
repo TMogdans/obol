@@ -24,7 +24,7 @@ Approval-Gültigkeit und CODEOWNERS-Drift; ein Auto-Merge-Workflow vollzieht den
 | Baustein | Datei / Ort | Rolle |
 |---|---|---|
 | Gate-Suite (Säule 2) | `.github/workflows/ci.yml` | nicht-korrumpierbare Checks (typecheck, lint, knip, test, mutation, arch, semgrep, squawk, tier, trace) |
-| Bindungs-Anker (b) | `.github/workflows/devloop-precondition-check.yml` + devloop-CLIs (`node_modules/devloop`) | fail-closed Merge-Wächter: Tamper, Approval-Gültigkeit, Tier-Ableitung, CODEOWNERS-Drift |
+| Bindungs-Anker (b) | `.github/workflows/devloop-precondition-check.yml` → `uses:` devloop composite action `@v0.7.0` | fail-closed Merge-Wächter: Tamper, Approval-Gültigkeit, Tier-Ableitung, CODEOWNERS-Drift |
 | Merge-Vollzug | `.github/workflows/auto-merge.yml` | schaltet Auto-Merge für Bot-PRs scharf + zieht BEHIND-PRs nach |
 | Geschützter Satz | `.github/CODEOWNERS` + `.devloop/{bot-logins,protected-globs}.json` | was der Agent nicht einseitig ändern darf |
 | Risiko-Staffel | `tools/tier-map.json` + `tools/derive-tier-cli.ts` | Tier deterministisch aus Pfaden (einzige Wahrheit) |
@@ -46,21 +46,21 @@ Owner (er soll nicht sein eigenes Output abnehmen).
 `.devloop/protected-globs.json`: dieselbe Menge als Glob-Liste (der Check liest sie für den
 `protected-set-touched`-Alarm). `.devloop/bot-logins.json`: die Bot-Logins (zählen nie als Mensch).
 
-## Schritt 3 — Gate-Suite + devloop-CLIs
+## Schritt 3 — Gate-Suite
 
-`.github/workflows/ci.yml` definiert die Required-Jobs (Job-Name = Check-Kontext). Die devloop-CLIs
-kommen als **git-gepinnte devDependency** (public Repo → kein CI-Token):
-
-```bash
-pnpm add -D -w "github:mayflower/devloop#<commit-sha>"
-```
+`.github/workflows/ci.yml` definiert die Required-Jobs (Job-Name = Check-Kontext). Der Bindungs-Anker
+(Schritt 4) braucht **keine** devloop-devDependency mehr: Seit devloop v0.7.0 referenziert er eine
+öffentliche composite action, die ihr `dist/` selbst mitbringt (kein Vendoring, kein CI-Token, läuft
+in jeder Org).
 
 ## Schritt 4 — Tier-gestufter Bindungs-Anker
 
 `.github/workflows/devloop-precondition-check.yml` läuft auf `pull_request` **und**
 `pull_request_review` (das menschliche Approve re-triggert ihn), checkt immer den PR-HEAD aus
-(`pull_request.head.sha`, weil `github.base_ref` auf dem Review-Event leer ist) und konsumiert
-devloops getestete CLIs aus `node_modules/devloop/dist/cli/` — keine Logik-Duplikation:
+(`pull_request.head.sha`, weil `github.base_ref` auf dem Review-Event leer ist) und referenziert
+die devloop composite action (`uses: mayflower/devloop/.github/actions/precondition-check@v0.7.0`,
+`github-token: ${{ github.token }}`), die intern vier getestete Prüfungen fährt — keine
+Logik-Duplikation, kein Vendoring:
 
 - `derive-tier` leitet das **autoritative** Tier aus dem Diff ab (nicht agent-deklariert, einzige Wahrheit).
 - `check-codeowners` ist der **Drift-Wächter**: jeder T2/T3-Pfad der tier-map muss in CODEOWNERS abgedeckt sein.
