@@ -109,7 +109,7 @@ afterAll(async () => {
 });
 
 describe("statement-projection — GET /accounts/{id}/statement", () => {
-  it.effect.skip(
+  it.effect(
     "[REQ-STMT-03] returns ONLY the queried account's lines, newest-first by occurredAt with a deterministic entryId tie-break, over a REAL HTTP server",
     () =>
       Effect.gen(function* () {
@@ -199,7 +199,7 @@ describe("statement-projection — GET /accounts/{id}/statement", () => {
       }),
   );
 
-  it.effect.skip(
+  it.effect(
     "[REQ-STMT-04] an account with no consumed events returns 200 with an empty array — NOT a 404 and NOT an error",
     () =>
       Effect.gen(function* () {

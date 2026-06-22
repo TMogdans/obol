@@ -124,7 +124,7 @@ const baseEvent: fc.Arbitrary<RecordedEvent> = fc.record({
 });
 
 describe("statement-projection — idempotency (REQ-STMT-02)", () => {
-  it.skip("[REQ-STMT-02] consuming a delivery stream with arbitrary duplicates/permutations converges to one row per unique entryId (no duplicate, no loss)", () => {
+  it("[REQ-STMT-02] consuming a delivery stream with arbitrary duplicates/permutations converges to one row per unique entryId (no duplicate, no loss)", () => {
     const program = fc.asyncProperty(
       // A set of distinct events (by entryId)...
       fc
@@ -233,7 +233,7 @@ describe("statement-projection — idempotency (REQ-STMT-02)", () => {
     return fc.assert(program, { numRuns: 10 });
   });
 
-  it.skip("[REQ-STMT-02] re-consuming an already-seen event leaves the account's projected statement byte-for-byte unchanged (idempotent redelivery)", () => {
+  it("[REQ-STMT-02] re-consuming an already-seen event leaves the account's projected statement byte-for-byte unchanged (idempotent redelivery)", () => {
     const program = fc.asyncProperty(
       baseEvent,
       fc.integer({ min: 1, max: 5 }),

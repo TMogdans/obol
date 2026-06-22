@@ -11,19 +11,54 @@ const Health = Schema.Struct({
 });
 
 /**
- * The statement HTTP API surface for this phase: a single `system` group with
- * only a health endpoint.
- *
- * statement-service is deliberately a SKELETON. Its real job — projecting
- * account statements from ledger events consumed off NATS — belongs to a later
- * phase. It exists now so the architecture gate (dependency-cruiser, Task 9)
- * has two services to enforce boundaries between, and so the monorepo's
- * service-to-service rules can be proven rather than asserted. Note there are
- * NO imports from `@obol/wallet-service` here: the services are isolated and
- * would communicate via `@obol/contracts` + events, never direct imports.
+ * A single statement line in the `GET /accounts/{id}/statement` response: the
+ * four `LedgerEntryRecorded` event fields verbatim (REQ-STMT-01/-03). `amount`
+ * is the SIGNED minor-unit value exactly as projected (never reinterpreted),
+ * `occurredAt` the ISO-8601 string. Defined LOCALLY here — the response type is
+ * service-local and never leaks into `packages/contracts` (REQ-STMT-06).
  */
-export class StatementApi extends HttpApi.make("statement").add(
-  HttpApiGroup.make("system").add(
-    HttpApiEndpoint.get("health", "/health").addSuccess(Health),
-  ),
-) {}
+const StatementLine = Schema.Struct({
+  entryId: Schema.String,
+  accountId: Schema.String,
+  amount: Schema.Int,
+  occurredAt: Schema.String,
+});
+
+/**
+ * The whole statement for an account: an array of lines, newest-first
+ * (REQ-STMT-03). An account with no consumed events yields an EMPTY array with a
+ * 200 — never a 404 (REQ-STMT-04).
+ */
+const Statement = Schema.Array(StatementLine);
+
+/** Path parameter of `GET /accounts/:id/statement` — `id` is the `accountId`. */
+const AccountIdPath = Schema.Struct({
+  id: Schema.String,
+});
+
+/**
+ * The statement HTTP API surface.
+ *
+ * - `statements` group: `GET /accounts/:id/statement` returns this account's
+ *   projected statement lines, newest-first (REQ-STMT-03); an unknown/empty
+ *   account is a successful empty list, not a 404 (REQ-STMT-04).
+ * - `system` group: the existing health endpoint is preserved (skeleton).
+ *
+ * statement-service projects account statements from ledger events consumed off
+ * NATS (the consumer/projection path). Note there are NO imports from
+ * `@obol/wallet-service`: the services are isolated and communicate only via
+ * `@obol/contracts` + events, never direct imports (REQ-STMT-06).
+ */
+export class StatementApi extends HttpApi.make("statement")
+  .add(
+    HttpApiGroup.make("statements").add(
+      HttpApiEndpoint.get("statement", "/accounts/:id/statement")
+        .setPath(AccountIdPath)
+        .addSuccess(Statement),
+    ),
+  )
+  .add(
+    HttpApiGroup.make("system").add(
+      HttpApiEndpoint.get("health", "/health").addSuccess(Health),
+    ),
+  ) {}
