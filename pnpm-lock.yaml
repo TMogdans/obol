@@ -29,9 +29,6 @@ importers:
       dependency-cruiser:
         specifier: 17.4.3
         version: 17.4.3
-      devloop:
-        specifier: github:mayflower/devloop#v0.4.1
-        version: https://codeload.github.com/mayflower/devloop/tar.gz/5a5b705ec263a90d0ae594adea47c278e20e2d58
       effect:
         specifier: ^3
         version: 3.21.3
@@ -1677,10 +1674,6 @@ packages:
   detect-libc@2.1.2:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
     engines: {node: '>=8'}
-
-  devloop@https://codeload.github.com/mayflower/devloop/tar.gz/5a5b705ec263a90d0ae594adea47c278e20e2d58:
-    resolution: {gitHosted: true, integrity: sha512-EGVV8WVsYmnUDABOU844c7xjaFrT1yFhNpLzYTj+f5vSGtaxRrAW0wFzJRkT88JHOg5OJV16BifkerJd8kxULA==, tarball: https://codeload.github.com/mayflower/devloop/tar.gz/5a5b705ec263a90d0ae594adea47c278e20e2d58}
-    version: 0.4.1
 
   diff-match-patch@1.0.5:
     resolution: {integrity: sha512-IayShXAgj/QMXgB0IWmKx+rOPuGMhqm5w6jvFxmVenXKIzRqTAAsbBPT3kWQeGANj3jGgvcvv4yK6SxqYmikgw==}
@@ -4271,8 +4264,6 @@ snapshots:
       minimalistic-assert: 1.0.1
 
   detect-libc@2.1.2: {}
-
-  devloop@https://codeload.github.com/mayflower/devloop/tar.gz/5a5b705ec263a90d0ae594adea47c278e20e2d58: {}
 
   diff-match-patch@1.0.5: {}
 
