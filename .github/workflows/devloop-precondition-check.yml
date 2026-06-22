@@ -32,6 +32,6 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }} # the PR HEAD, on both events
           fetch-depth: 0
-      - uses: mayflower/devloop/.github/actions/precondition-check@v0.7.0
+      - uses: mayflower/devloop/.github/actions/precondition-check@v0.7.1
         with:
           github-token: ${{ github.token }}
