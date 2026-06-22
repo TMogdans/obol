@@ -4,7 +4,7 @@
 # Token-free, dependency-free install: this thin workflow just calls the PUBLIC reusable devloop
 # action. GitHub checks out mayflower/devloop (with its committed dist/) into the runner, so this
 # repo needs NO devloop npm dependency, NO cross-org PAT, and NO vendoring — works in any org.
-# `/devloop:init` pins the version (v0.7.0); bump via `/devloop:init --force` or by hand.
+# `/devloop:init` pins the version (v0.7.2); bump via `/devloop:init --force` or by hand.
 #
 # This file MUST contain the string "devloop-precondition-check" so checkGuardians() can verify
 # the binding anchor is wired in the target repo (it is itself a guardian).
@@ -32,6 +32,6 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }} # the PR HEAD, on both events
           fetch-depth: 0
-      - uses: mayflower/devloop/.github/actions/precondition-check@v0.7.1
+      - uses: mayflower/devloop/.github/actions/precondition-check@v0.7.2
         with:
           github-token: ${{ github.token }}
