@@ -7,7 +7,7 @@
       "project": ["src/**/*.ts"]
     },
     "services/statement-service": {
-      "entry": ["src/server.ts", "test/**/*.test.ts"],
+      "entry": ["src/server.ts", "src/main.ts", "test/**/*.test.ts"],
       "project": ["src/**/*.ts"]
     },
     "packages/contracts": {
