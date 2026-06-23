@@ -15,7 +15,8 @@
     "arch": "depcruise services packages --config .dependency-cruiser.cjs",
     "migrations": "squawk --config .squawk.toml services/*/migrations/*.sql",
     "tier": "tsx tools/derive-tier-cli.ts",
-    "trace": "tsx tools/trace-coverage-cli.ts"
+    "trace": "tsx tools/trace-coverage-cli.ts",
+    "twin": "vitest run --config vitest.twin.config.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.0",

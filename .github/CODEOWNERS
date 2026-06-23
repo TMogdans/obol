@@ -28,6 +28,7 @@
 /stryker.config.json        @tmogdans
 /vitest.mutation.config.ts  @tmogdans
 /vitest.config.ts           @tmogdans
+/vitest.twin.config.ts      @tmogdans
 /.dependency-cruiser.cjs    @tmogdans
 /.squawk.toml               @tmogdans
 /knip.json                  @tmogdans
@@ -53,3 +54,10 @@
 /services/                  @tmogdans
 /packages/contracts/        @tmogdans
 **/auth/                    @tmogdans
+
+# Twin / behavioural oracle (Säule 4, design D2). services/** is already T2, but
+# the reference model + invariants are a SEPARATE protected concern: a feature PR
+# that touches the oracle must be a VISIBLE alarm (the agent that writes the code
+# may not reach the oracle that judges it — separation of powers, one level up),
+# not just another line in a services/** diff.
+/services/wallet-service/twin/  @tmogdans

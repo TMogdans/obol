@@ -1,0 +1,40 @@
+# PROPOSAL — twin CI job (für @tmogdans zu übertragen)
+#
+# Der Agent-Bot hat KEINE `workflows`-Permission und darf
+# `.github/workflows/ci.yml` nicht pushen (dokumentierter Käfig-Befund, vgl.
+# docs/pilot-log.md 2026-06-20 / 2026-06-21 #38). Der Handoff sieht das so vor:
+# "Agent liefert die Job-Definition; das 'required' + Branch-Protection setzt
+# Tobias." Diese Datei IST die Job-Definition.
+#
+# Anwenden:
+#   1. Den Block unten als neuen Job in .github/workflows/ci.yml einfügen
+#      (gleiche Ebene wie `typecheck`, `test`, … — am Ende nach `trace`).
+#   2. `twin` als REQUIRED status check in der Branch-Protection von `main`
+#      aktivieren (wie die übrigen Gates).
+#
+# Schwelle: NULL DIVERGENZ — jede Modell/System-Abweichung rötet den Job.
+# Verifiziert: lokal grün bei 100 Sequenzen (~7 s) gegen Testcontainers-Postgres;
+# rot auf den injizierten Lackmus (Spend-Guard < statt ≤) und auf den realen
+# cached-balance-drift-Befund (beide nach dem Festhalten zurückgerollt).
+
+  twin:
+    name: twin (greenfield digital twin, model-based oracle)
+    runs-on: ubuntu-latest
+    # The Greenfield Twin (Säule 4): the REAL wallet-service runs against a
+    # trivial reference model over thousands of generated money-core sequences
+    # (Testcontainers-Postgres — decision D1; ubuntu-latest ships Docker). It is
+    # an INDEPENDENT correctness oracle (derived from domain truths, not the
+    # spec, not the code), so it is its OWN required check with a categorically
+    # different threshold: NULL DIVERGENCE — any model/system mismatch fails —
+    # not a coverage percentage.
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable Corepack
+        run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run typecheck
+      - run: pnpm run twin

@@ -1,3 +1,4 @@
 {
-  "anchor": "b"
+  "anchor": "b",
+  "twin": { "enabled": true, "area": "services/wallet-service" }
 }
