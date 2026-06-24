@@ -213,3 +213,26 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run trace
+
+  twin:
+    name: twin (greenfield digital twin, model-based oracle)
+    runs-on: ubuntu-latest
+    # The Greenfield Twin (Säule 4): the REAL wallet-service runs against a
+    # trivial reference model over thousands of generated money-core sequences
+    # (Testcontainers-Postgres — decision D1; ubuntu-latest ships Docker). It is
+    # an INDEPENDENT correctness oracle (derived from domain truths, not the
+    # spec, not the code), so it is its OWN required check with a categorically
+    # different threshold: NULL DIVERGENCE — any model/system mismatch fails —
+    # not a coverage percentage. Make it a REQUIRED status check via branch
+    # protection (owner step, like the other gates) so it actually gates merges.
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable Corepack
+        run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run typecheck
+      - run: pnpm run twin
