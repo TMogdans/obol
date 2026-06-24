@@ -1,7 +1,7 @@
 # GitHub-Setup — der vollständige Käfig (Anker b), reproduzierbar
 
 > Die komplette GitHub-Konfiguration des Obol-Referenz-Repos, so wie sie **aktuell live ist**
-> (Stand 2026-06-22; der Bindungs-Anker läuft über devloops composite action `@v0.7.1`, das
+> (Stand 2026-06-24; der Bindungs-Anker läuft über devloops composite action `@v0.8.0`, das
 > Review-Modell ist seit v0.3.0 CODEOWNERS-nativ). Zweck:
 > nachbaubar machen — Grundlage für einen Tutorial-Blogpost
 > („So baust du einen verantwortbaren agentischen Merge-Käfig"). Theorie: Framework §3 (Gewalten-
@@ -25,7 +25,7 @@ Approval-Gültigkeit und CODEOWNERS-Drift; ein Auto-Merge-Workflow vollzieht den
 | Baustein | Datei / Ort | Rolle |
 |---|---|---|
 | Gate-Suite (Säule 2) | `.github/workflows/ci.yml` | nicht-korrumpierbare Checks (typecheck, lint, knip, test, mutation, arch, semgrep, squawk, tier, trace) |
-| Bindungs-Anker (b) | `.github/workflows/devloop-precondition-check.yml` → `uses:` devloop composite action `@v0.7.1` | fail-closed Merge-Wächter: Tamper, Approval-Gültigkeit, Tier-Ableitung, CODEOWNERS-Drift |
+| Bindungs-Anker (b) | `.github/workflows/devloop-precondition-check.yml` → `uses:` devloop composite action `@v0.8.0` | fail-closed Merge-Wächter: Tamper, Approval-Gültigkeit, Tier-Ableitung, CODEOWNERS-Drift |
 | Merge-Vollzug | `.github/workflows/auto-merge.yml` | schaltet Auto-Merge für Bot-PRs scharf + zieht BEHIND-PRs nach |
 | Geschützter Satz | `.github/CODEOWNERS` + `.devloop/{bot-logins,protected-globs}.json` | was der Agent nicht einseitig ändern darf |
 | Risiko-Staffel | `tools/tier-map.json` + `tools/derive-tier-cli.ts` | Tier deterministisch aus Pfaden (einzige Wahrheit) |
@@ -59,7 +59,7 @@ in jeder Org).
 `.github/workflows/devloop-precondition-check.yml` läuft auf `pull_request` **und**
 `pull_request_review` (das menschliche Approve re-triggert ihn), checkt immer den PR-HEAD aus
 (`pull_request.head.sha`, weil `github.base_ref` auf dem Review-Event leer ist) und referenziert
-die devloop composite action (`uses: mayflower/devloop/.github/actions/precondition-check@v0.7.1`,
+die devloop composite action (`uses: mayflower/devloop/.github/actions/precondition-check@v0.8.0`,
 `github-token: ${{ github.token }}`), die intern vier getestete Prüfungen fährt — keine
 Logik-Duplikation, kein Vendoring:
 
