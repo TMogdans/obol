@@ -57,6 +57,7 @@ pnpm run lint           # biome check
 pnpm run knip           # dead code / unused dependencies
 pnpm run test           # vitest + coverage; includes Testcontainers integration tests (needs Docker)
 pnpm run mutation       # Stryker mutation testing on the pure balance projection
+pnpm run twin           # greenfield digital twin: real service vs. reference model (needs Docker)
 pnpm run arch           # dependency-cruiser: no cross-service imports, no cycles, no orphans
 pnpm run migrations     # squawk: lint SQL migrations for unsafe DDL
 pnpm run tier -- <path> # deterministic risk tier of a changeset (prints T1/T2/T3)
@@ -83,6 +84,7 @@ ledger, idempotent money operations, expand-contract migrations, `effect@3.x` on
 | `knip` | knip | Dead code and unused dependencies are where unverified surface area hides. Kept at zero. |
 | `test` + coverage | vitest + Testcontainers | Behavior is verified against the spec on a **real Postgres**, not a mock. Coverage thresholds are **ratchets** (only ever raised). |
 | `mutation` | Stryker | The `assert(true)` killer: it mutates the code and checks the tests *fail*. A test suite that passes against broken code is worthless; mutation testing proves the tests actually constrain behavior. |
+| `twin` | fast-check + Testcontainers | The independent oracle (Säule 4): the **real** wallet-service is run against a trivial reference model over thousands of generated money-core sequences, comparing status + balance after every step. Derived from domain truths, not the spec or the code — it catches behaviour the spec-derived example tests structurally miss (e.g. the balance *after* a rejected spend). Threshold: **null divergence**. |
 | `arch` | dependency-cruiser | No service imports another service's source — cross-service sharing goes through `packages/contracts` only. No cycles, no orphans. |
 | `escape-hatches` | semgrep | The guard of the guards. ERRORs on the common ways verification gets silently defeated: `.skip`/`.only`/`.todo`, `@ts-expect-error`/`@ts-ignore`, `biome-ignore`, and `--no-verify`. The project `.semgrepignore` keeps **test files in scope** (semgrep would otherwise skip `*.test.ts`), so you can't hide an escape hatch in a test. |
 | `migrations` | squawk | SQL migrations are linted for unsafe/destructive DDL before they can land. |
