@@ -5,6 +5,6 @@
     "outDir": "dist-test",
     "rootDir": "."
   },
-  "include": ["test"],
+  "include": ["test", "twin"],
   "references": [{ "path": "./tsconfig.src.json" }]
 }

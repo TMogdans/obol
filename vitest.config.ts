@@ -6,7 +6,12 @@ export default defineConfig({
     // tsconfig.test.json (composite projects must emit). Those files are a
     // typecheck artifact only — never run them as tests. We run the .ts
     // sources directly. Keep vitest's defaults and add dist-test on top.
-    exclude: [...configDefaults.exclude, "**/dist-test/**"],
+    //
+    // twin/ holds the Greenfield Twin (model-based oracle over the real service
+    // + Testcontainers). It is its OWN required job (vitest.twin.config.ts, CI
+    // job "twin") with a null-divergence threshold, so it is excluded here to
+    // avoid double-running the slow property suite in the example test job.
+    exclude: [...configDefaults.exclude, "**/dist-test/**", "**/twin/**"],
     coverage: {
       provider: "v8",
       reporter: ["text", "html"],
